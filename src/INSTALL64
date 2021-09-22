@@ -1,0 +1,10 @@
+cd BDDc
+make 64
+cd ../BDDXc
+make 64
+cd ../BDDLCM
+make 64
+cd ../BDD+
+make 64
+cd ..
+

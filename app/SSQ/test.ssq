@@ -1,0 +1,16 @@
+symbol a b c d
+F = (a b + c)(b d + 1)
+print F
+print /card F
+print /lit F
+print /size F
+G = (a b + d)(b d + a c)
+print G
+print F + G
+print F & G
+print F - G
+print G / a b
+print G % a b
+print G / (a b + d)
+print G % (a b + d)
+

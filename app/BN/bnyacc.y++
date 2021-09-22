@@ -1,0 +1,479 @@
+%{
+// BN Parser(Yacc) (ver0.3)
+// Shin-ichi MINATO (Dec. 10, 2013)
+
+#define YYMAXDEPTH 1000
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include "bn.h"
+using namespace std;
+
+extern	int	bnlineno;
+extern	char*	yytext;
+extern	FILE*	bnin;
+extern	int	bnwrap();
+extern	int	yylex();
+
+FILE* LastFP = 0;
+
+BNHead BNet(256);
+BNNode* CurNode;
+int CurValIndex;
+int CurFinIndex;
+int CurPrbIndex;
+int CurCPTIndex;
+
+extern "C"
+{
+  extern int system(const char*);
+  extern int isatty(int);
+  extern int rand();
+}
+
+void bnerror(char* s)
+{
+  cerr << s << " in line " << bnlineno << ".\n";
+  cerr.flush();
+}
+
+int bnwrap() { return(1); }
+
+#define NDEF 1000000
+
+int* Visit;
+
+int Stack[BNMaxFin];
+static void PutTerm(int, int, int);
+void PutTerm(int d, int index, int v)
+{
+  BNNode* node = BNet.GetNode(index);
+  if(d == node->n_fin)
+  {
+    printf("N%dv%d = ", index, v);
+    printf("N%dv%d + ", index, v);
+    int cptindex = node->myoffset * v;
+    for(int i=0; i<d; i++)
+      cptindex += node->offset[i] * Stack[i];
+    int prbindex = node->GetCPT(cptindex);
+    char* prb = node->GetPrb(prbindex);
+
+    int zero = 0;
+    if(strcmp(prb, "0") == 0) zero = 1;
+    if(strcmp(prb, "0.0") == 0) zero = 1;
+    int one = 0;
+    if(strcmp(prb, "1") == 0) one = 1;
+    if(strcmp(prb, "1.0") == 0) one = 1;
+
+    if(zero == 1) printf("0 ");
+    else if(one == 1) printf("1 ");
+    else printf("n%dp%d ", index, node->GetCPT(cptindex));
+    
+    if(zero == 0)
+    {
+      for(int i=0; i<d; i++)
+        if(BNet.GetNode(node->GetFin(i))->ChkNZ(Stack[i])==0)
+        {
+          zero = 1;
+	  break;
+        }
+      if(zero == 1) printf("(0) ");
+      else node->SetNZ(v);
+    }
+
+    for(int i=0; i<d; i++)
+      printf("N%dv%d ", node->GetFin(i), Stack[i]);
+    printf(";     # %s\n", node->GetPrb(node->GetCPT(cptindex)));
+  }
+  else
+  {
+    BNNode* finnode = BNet.GetNode(node->GetFin(d));
+    for(int i=0; i<finnode->n_val; i++)
+    {
+      Stack[d] = i;
+      PutTerm(d+1, index, v);
+    }
+  }
+
+}
+
+static void PutScript(int);
+void PutScript(int index)
+{
+  if(Visit[index] != 0) return;
+  Visit[index] = 1;
+  BNNode* node = BNet.GetNode(index);
+  for(int i=0; i<node->n_fin; i++)
+  {
+    int ix2 = node->GetFin(i);
+    if(Visit[ix2] == 0) PutScript(ix2);
+  }
+  printf("\n#### N%d %s  ", index, node->name);
+  printf("val:%d  fin:%d\n", node->n_val, node->n_fin);
+  printf("print \"N%d\"\n", index);
+
+  printf("symbol [");
+  for(int i=0; i<node->n_prb; i++)
+    printf("n%dp%d ", index, i);
+  printf("]\n");
+  printf("symbol [");
+  for(int i=0; i<node->n_val; i++)
+    printf("n%dv%d ", index, i);
+  printf("]\n");
+
+  //printf("N%d = 0\n", index);
+  for(int i=0; i<node->n_val; i++)
+  {
+    printf("N%dv%d = 0 ", index, i);
+    printf(";     # %s\n", node->GetVal(i));
+    
+    int d = 0;
+    PutTerm(0, index, i);
+
+    printf("N%dv%d = ", index, i);
+    printf("N%dv%d * ", index, i);
+    printf("n%dv%d\n", index, i);
+
+    //printf("N%d = ", index);
+    //printf("N%d + ", index);
+    //printf("N%dv%d\n", index, i);
+  }
+  //printf("MLF = MLF N%d\n", index);
+}
+
+int main(int argc, char** argv)
+{
+
+  char* src = 0;
+  char* opt;
+  if(argc == 1) opt = 0;
+  else
+  {
+    opt = argv[1];
+    if(opt[0] != '-'){ src = opt; opt = 0; }
+    else if(argc > 2) src = argv[2];
+  }
+
+  if(src != 0 && (bnin = fopen(src, "r")) == 0)
+  {
+    fprintf(stderr, "can't open the file: %s.\n", src);
+    return 1;
+  }
+
+  int nmax;
+  if(opt == 0) nmax = NDEF;
+  else nmax = atoi(opt+1);
+
+  bnparse();
+
+//start
+  for(int i=0; i<BNet.n_node; i++)
+  {
+    BNNode* node = BNet.GetNode(i);
+    for(int j=0; j<node->n_fin; j++)
+    {
+      int i2 = node->GetFin(j);
+      BNNode* node2 = BNet.GetNode(i2);
+      node2->n_fout++;
+    }
+  }
+//end
+
+  Visit = new int[BNet.n_node];
+  for(int i=0; i<BNet.n_node; i++) Visit[i] = 0;
+
+  int ivar = 0;
+  int pvar = 0;
+  for(int i=0; i<BNet.n_node; i++) 
+  {
+    BNNode* node = BNet.GetNode(i);
+    ivar += node->n_val;
+    pvar += node->n_prb;
+  }
+
+  printf("######## BN name: %s  Nodes: %d  Indicators: %d  Parameters: %d\n\n",
+         BNet.name, BNet.n_node, ivar, pvar);
+
+  printf("symbol /t\n");
+
+  /*
+  for(int i=0; i<BNet.n_node; i++)
+  {
+    BNNode* node = BNet.GetNode(i);
+    printf("symbol [");
+    for(int j=0; j<node->n_prb; j++)
+      printf("n%dp%d ", i, j);
+    printf("]\n");
+    printf("symbol [");
+    for(int j=0; j<node->n_val; j++)
+      printf("n%dv%d ", i, j);
+    printf("]\n");
+  }
+  */
+
+  //printf("MLF = 1\n");
+  for(int i=0; i<BNet.n_node; i++)
+    PutScript(i);
+    //PutScript(BNet.n_node - i -1);
+
+  printf("\n######## Output part\n");
+  for(int i=0; i<BNet.n_node; i++)
+  {
+    BNNode* node = BNet.GetNode(i);
+    for(int j=0; j<node->n_val; j++)
+    {
+      //printf("print \"N%dv%d:\"\n", i, j);
+      printf("print /size N%dv%d\n", i, j);
+      //printf("print /count N%dv%d\n", i, j);
+    }
+    //printf("print \"N%d:\"\n", i);
+    //printf("print /size N%d\n", i);
+  }
+  //printf("print \"MLF:\"\n");
+  //printf("print /size MLF\n" );
+
+  printf("\n######## Inference part\n");
+  if(BNet.n_node)
+  {
+    for(int i=0; i<100; i++)
+    {
+      printf("MLF = 1\n");
+      for(int j=0; j<2; j++)
+      {
+        int n = rand() % BNet.n_node;
+        BNNode* node = BNet.GetNode(n);
+        int v = rand() % node->n_val;
+        printf("MLF = MLF N%dv%d\n", n, v);
+      }
+      printf("print /count MLF\n" );
+      printf("print \",\"\n");
+      printf("print /size MLF\n" );
+      //printf("print /value MLF\n" );
+    }
+  }
+
+  delete[] Visit;
+  exit(0);
+}
+
+%}
+%union
+{
+  struct
+  {
+    char* str;
+    int len;
+  } name;
+}
+
+%start bn
+
+%token	SEMICOLON LBRACE RBRACE LBRACKET RBRACKET
+%token  LPAREN RPAREN 
+%token	NETWORK VARIABLE TYPE
+%token	DISCRETE PROBABILITY TABLE ORDER
+%token  UNKNOWN
+%token<name> ID
+
+%%
+
+bn
+  : { }
+    statements
+    { }
+  ;
+
+statements
+  : statements statement
+  | statement
+  ;
+
+statement
+  : SEMICOLON
+  | st_network
+  | st_order
+  | st_variable
+  | st_probability
+//  | /* empty */
+  ;
+
+st_order
+  : ORDER LBRACE ordlist RBRACE
+  ;
+
+ordlist
+  : ordlist ordvar
+  | ordvar
+  ;
+
+ordvar
+  : ID
+    {
+      BNet.NewNode($1.str);
+      delete[] $1.str;
+    }
+  ;
+	
+st_network
+  : NETWORK ID LBRACE RBRACE
+    {
+      BNet.SetName($2.str);
+      delete[] $2.str;
+    }
+  ;
+
+st_variable
+  : VARIABLE ID
+    {
+      int index = BNet.GetIndex($2.str);
+      if(index == -1)
+      {
+        BNet.NewNode($2.str);
+        CurNode = BNet.GetNode(BNet.n_node -1);
+      }
+      else CurNode = BNet.GetNode(index);
+      delete[] $2.str;
+    }
+    LBRACE vcommands RBRACE
+  ;
+
+vcommands
+  : vcommands vcommand
+  | vcommand
+  ;
+
+vcommand
+  : TYPE DISCRETE LBRACKET ID RBRACKET 
+    {
+      CurNode->SetNVal(atoi($4.str));
+      delete[] $4.str;
+      CurValIndex = 0;
+    }
+    LBRACE vlist RBRACE SEMICOLON
+  ;
+	
+vlist
+  : vlist value
+  | value
+  ;
+
+value
+  : ID
+    {
+      CurNode->SetVal(CurValIndex++, $1.str);
+      delete[] $1.str;
+    }
+  ;
+	
+st_probability
+  : PROBABILITY LPAREN ID
+    {
+      CurNode = BNet.GetNode(BNet.GetIndex($3.str));
+      delete[] $3.str;
+    }
+    fanin
+    {
+      CurNode->AllocCPT();
+    }
+    RPAREN LBRACE cpt RBRACE
+  ;
+
+fanin
+  : faninlist
+  | /* empty */
+  ;
+
+faninlist
+  : faninlist faninvar
+  | faninvar
+  ;
+
+faninvar
+  : ID
+    {
+      int index = BNet.GetIndex($1.str);
+      CurNode->EnterFin(index);
+      delete[] $1.str;
+    }
+  ;
+
+cpt
+  : plist
+  | table
+  ;
+
+plist
+  : plist pline
+  | pline
+  ;
+
+pline
+  : LPAREN
+    {
+      CurCPTIndex = 0;
+      CurFinIndex = 0;
+    }
+    condlist RPAREN prblist SEMICOLON
+  | {
+      CurCPTIndex = 0;
+    }
+    prblist SEMICOLON
+  ;
+
+condlist
+  : condlist cond
+  | cond
+  ;
+
+cond
+  : ID
+    {
+      BNNode* finnode = BNet.GetNode(CurNode->GetFin(CurFinIndex));
+
+      CurCPTIndex += finnode->GetValIndex($1.str)
+                     * CurNode->offset[CurFinIndex];
+      CurFinIndex++;
+      delete[] $1.str;
+    }
+  ;
+
+prblist
+  : prblist prb
+  | prb
+  ;
+
+prb
+  : ID
+    {
+      CurNode->EnterPrb($1.str);
+      CurNode->SetCPT(CurCPTIndex, CurNode->GetPrbIndex($1.str));
+      CurCPTIndex += CurNode->myoffset;
+      delete[] $1.str;
+    }
+  ;
+
+table
+  : TABLE
+    {
+      CurCPTIndex = 0;
+    }
+    tprblist SEMICOLON
+  ;
+
+tprblist
+  : tprblist tprb
+  | tprb
+  ;
+
+tprb
+  : ID
+    {
+      CurNode->EnterPrb($1.str);
+      CurNode->SetCPT(CurCPTIndex++, CurNode->GetPrbIndex($1.str));
+      delete[] $1.str;
+    }
+  ;
+
+%%
+

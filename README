@@ -1,0 +1,18 @@
+BDD Package SAPPORO-Edition-1.0 (S. Minato, Hokkaido Univ. 2005)
+
+Directory structure:
+
+SAPPOROBDD/README         This file.
+SAPPOROBDD/COPYRIGHT      Copyright desdription of this package.
+SAPPOROBDD/app/           Source programs of BDD applications.
+SAPPOROBDD/include/       Header files.
+SAPPOROBDD/lib/           Compiled BDD library files are stored here.
+SAPPOROBDD/man/           Manuals of BDD package. (So far Japanese only..)
+SAPPOROBDD/src/           Source files of BDD package.
+SAPPOROBDD/src/BDDc/      Core of package written in C.
+SAPPOROBDD/src/BDDXc/     Part of package related to X11, written in C.
+SAPPOROBDD/src/BDDLCMc/   Part of package related to LCM, written in C.
+SAPPOROBDD/src/BDD+/      Main part of package written in C++.
+SAPPOROBDD/src/INSTALL    Script for compiling all files in SAPPOROBDD/src/
+
+

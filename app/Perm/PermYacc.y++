@@ -1,0 +1,535 @@
+%{
+// Perm Parser(Yacc) (v0.3)
+// Shin-ichi MINATO (Jul. 3, 2011)
+
+#define YYMAXDEPTH 1000
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include "PiDD.h"
+#include "perm.h"
+
+#ifdef B_64
+#  define B_STRTOI strtoll
+#  define B_ITOSTR(n, s) sprintf(s, "%lld", n)
+#else
+#  define B_STRTOI strtol
+#  define B_ITOSTR(n, s) sprintf(s, "%d", n)
+#endif
+
+using namespace std;
+
+extern int    yylineno;
+extern char*  yytext;
+extern FILE*  yyin;
+extern int    yywrap();
+extern int    yylex();
+
+extern "C"
+{
+  extern int system(const char*);
+  extern int isatty(int);
+}
+
+void yyerror(const char* s)
+{
+  cerr << s << " in line " << yylineno << ".\n";
+  cerr.flush();
+}
+
+int yywrap() { return(1); }
+
+const int power30 = 1 << 30;
+int pt1[PiDD_MaxVar];
+int pt2[PiDD_MaxVar];
+int pty[PiDD_MaxVar];
+int psize;
+
+int main(int argc, char** argv)
+{
+  char* src = 0;
+  char* opt;
+
+  if(argc == 1) opt = 0;
+  else
+  {
+    opt = argv[1];
+    if(opt[0] != '-'){ src = opt; opt = 0; }
+    else if(argc > 2) src = argv[2];
+  }
+
+  if(src != 0 && (yyin = fopen(src, "r")) == 0)
+  {
+    fprintf(stderr, "can't open the file: %s.\\n", src);
+    return 1;
+  }
+
+  bddword nmax;
+  if(opt == 0) nmax = NDEF;
+  else nmax = B_STRTOI(opt+1, NULL, 10);
+
+  BDDV_Init(256, nmax);
+
+  if(src == 0 && isatty(0) == 1)
+  {
+    cerr << "***** Permutation Manipulator (v0.3) *****\n"; 
+    cerr << PROMPT; 
+    cerr.flush();
+  }
+  
+  yyparse();
+  exit(0);
+}
+
+struct OV
+{
+  char _ovf;
+
+  OV(void) { _ovf = 0; }
+  void Set(void) { _ovf = 1; }
+  char Check(void)
+  {
+    char a = _ovf;
+    _ovf = 0;
+    return a;
+  }
+} OVF;
+
+
+%}
+%union{
+  struct
+  {
+    char* str;
+    int len;
+  } name;
+  PiDD* pidd;
+}
+
+%left PLUS MINUS
+%left AND
+%left MULTIPLY QUOTIENT REMAINDER
+%left LPAREN LBRACKET IDFUNC IDVAR 
+
+%start perm
+
+%token SEMICOLON RETURN SYMBOL PRINT EXIT HELP QUESTION
+%token COFACT ODD EVEN SWAPBOUND
+%token COMMA ASSIGN AND 
+%token PLUS MINUS MULTIPLY QUOTIENT REMAINDER
+%token COLON LBRACKET RBRACKET LPAREN RPAREN
+%token UNKNOWN
+%token<name> IDVAR IDFUNC FNAME 
+
+%type<pidd> expr u_expr 
+%%
+
+perm
+  : lines last
+    { if(yyin == stdin) cerr << "\n"; return(1); }
+;
+
+last
+  : EXIT RETURN
+  | /* empty */
+  ;
+
+lines
+  : lines commands RETURN
+    {
+      if(yyin == stdin && isatty(0) == 1)
+      {
+        cerr << PROMPT;
+        cerr.flush();
+      }
+    }
+  | lines error RETURN
+    {
+      yyerrok;
+      if(yyin == stdin && isatty(0) == 1)
+      {
+        cerr << PROMPT;
+        cerr.flush();
+      }
+    }
+  | /* empty */
+  ;
+
+commands
+  : commands SEMICOLON command
+  | command
+  ;
+
+command
+  : /* empty */
+  | define
+  | assign
+  | output
+  | help
+    {
+      system(DOCUMENT);
+    }
+  ;
+
+define
+  : SYMBOL symbols
+  | SYMBOL
+    {
+      int n = VTable.Used();
+      bout << " ";
+      for(int i=1; i<=n; i++)
+      {
+        bout << VTable.GetName(i);
+        bout.Delimit();
+      }
+      bout.Return();
+    }
+  ;
+
+symbols
+  : symbols comma symbol
+  | symbol
+  ;
+
+symbol
+  : IDVAR
+    {
+      int id = VTable.GetVarID($1.str);
+      if(id != 0)
+      {
+	char s[256];
+	sprintf(s, "<WARNING> Duplicated symbol '%s' declared", $1.str);
+        yyerror(s);
+      }
+      else
+	VTable.SetT($1.str, 1);
+      delete[] $1.str;
+    }
+  ;
+
+comma
+  : COMMA
+  | /* empty */
+  ;
+
+assign
+  : IDFUNC ASSIGN expr
+    {
+      if(*$3 == PiDD(-1))
+      {
+        yyerror("<WARNING> Memory overflow");
+        *$3 = PiDD(0);
+      }
+      FTable.Set($1.str, *$3);
+      delete[] $1.str;
+      delete $3;
+    }
+  ;
+
+u_expr
+  : LPAREN expr RPAREN
+    { $$ = $2; }
+  | IDVAR
+    {
+      $$ = new PiDD(0);
+      if(strcmp($1.str, "1") == 0)
+        *$$ = PiDD(1);
+      else if(strcmp($1.str, "0") != 0)
+        yyerror("Syntax error");
+      delete[] $1.str;
+    }
+  | IDFUNC
+    {
+      PiDD v = FTable.GetPiDD($1.str);
+      if(v == PiDD(-1))
+      {
+        yyerror("<WARNING> Undefined variable appeared");
+        v = 0;
+        FTable.Set($1.str, v);
+      }
+      $$ = new PiDD(v);
+      delete[] $1.str;
+    }
+  | LPAREN IDVAR COLON IDVAR RPAREN
+    {
+      int var1  = VTable.GetVarID($2.str);
+      if(var1 == 0)
+      {
+	VTable.SetT($2.str, 1);
+	char s[256];
+	sprintf(s, "<WARNING> Undeclared symbol '%s' added", $2.str);
+        yyerror(s);
+        var1  = VTable.GetVarID($2.str);
+      }
+
+      int var2  = VTable.GetVarID($4.str);
+      if(var2 == 0)
+      {
+	VTable.SetT($4.str, 1);
+	char s[256];
+	sprintf(s, "<WARNING> Undeclared symbol '%s' added", $4.str);
+        yyerror(s);
+        var2  = VTable.GetVarID($4.str);
+      }
+      $$ = new PiDD(1);
+      *$$ = $$->Swap(var1, var2);
+      delete[] $4.str;
+      delete[] $2.str;
+    }
+  | u_expr COFACT LPAREN IDVAR COMMA IDVAR RPAREN
+    {
+      int var1  = VTable.GetVarID($4.str);
+      if(var1 == 0)
+      {
+	VTable.SetT($4.str, 1);
+	char s[256];
+	sprintf(s, "<WARNING> Undeclared symbol '%s' added", $4.str);
+        yyerror(s);
+        var1  = VTable.GetVarID($4.str);
+      }
+
+      int var2  = VTable.GetVarID($6.str);
+      if(var2 == 0)
+      {
+	VTable.SetT($6.str, 1);
+	char s[256];
+	sprintf(s, "<WARNING> Undeclared symbol '%s' added", $6.str);
+        yyerror(s);
+        var2  = VTable.GetVarID($6.str);
+      }
+      *$1 = $1 -> Cofact(var1, var2);
+      $$ = $1;
+      delete[] $6.str;
+      delete[] $4.str;
+    }
+  | u_expr ODD 
+    {
+      *$1 = $1 -> Odd();
+      $$ = $1;
+    }
+  | u_expr EVEN 
+    {
+      *$1 = $1 -> Even();
+      $$ = $1;
+    }
+  | u_expr SWAPBOUND LPAREN IDVAR RPAREN
+    {
+      int u = atoi($4.str);
+      *$1 = $1 -> SwapBound(u);
+      $$ = $1;
+      delete[] $4.str;
+    }
+  | LBRACKET { psize = 0; } symlist RBRACKET
+    {
+      $$ = new PiDD(1);
+      for(int i=0; i<psize; i++) pt2[i] = 0;
+      int ng = 0;
+      for(int i=0; i<psize; i++)
+      {
+        int x = pt1[i];
+	if(x > psize || pt2[x-1] != 0)
+	{
+	  ng = 1;
+	  break;
+	}
+	pt2[x-1] = i+1;
+      }
+      if(ng)
+      {	
+	*$$ = PiDD(0);
+        yyerror("Illegal permtation");
+      }
+      else
+      {
+        for(int x=psize; x>=2; x--)
+        {
+          int y = pt1[x-1];
+          int z = pt2[x-1];
+	  pty[x-1] = y;
+	  pt1[x-1] = x;
+	  pt2[x-1] = x;
+	  pt1[z-1] = y;
+	  pt2[y-1] = z;
+        }
+	for(int x=2; x<=psize; x++)
+	  if(x != pty[x-1]) *$$ = $$->Swap(x, pty[x-1]);
+      }
+    }
+  ;
+
+expr
+  : u_expr
+    { $$ = $1; }
+  | expr u_expr %prec MULTIPLY
+    {
+      *$1 = (*$1) * (*$2);
+      $$ = $1;
+      delete $2;
+    }
+  | expr PLUS expr
+    {
+      *$1 = *$1 + *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expr MINUS expr
+    {
+      *$1 = *$1 - *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expr MULTIPLY expr
+    {
+      *$1 = (*$1) * (*$3);
+      $$ = $1;
+      delete $3;
+    }
+  | expr QUOTIENT expr
+    {
+      if(*$3 == 0)
+      {
+        yyerror("<WARNING> Divide by zero");
+        *$1 = 0;
+      }
+      else *$1 = *$1 / *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expr REMAINDER expr
+    {
+      if(*$3 == 0)
+      {
+        yyerror("<WARNING> Divide by zero");
+        *$1 = 0;
+      }
+      else *$1 = *$1 % *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expr AND expr
+    {
+      *$1 = *$1 & *$3;
+      $$ = $1;
+      delete $3;
+    }
+  ;
+
+symlist
+  : symlist IDVAR
+    {
+      int var  = VTable.GetVarID($2.str);
+      if(var == 0)
+      {
+	VTable.SetT($2.str, 1);
+	char s[256];
+	sprintf(s, "<WARNING> Undeclared symbol '%s' added", $2.str);
+        yyerror(s);
+        var  = VTable.GetVarID($2.str);
+      }
+      pt1[psize++] = var;
+      delete[] $2.str;
+    }
+  | symlist MINUS
+    {
+      pt1[psize] = psize + 1;
+      psize++;
+    }
+  | /* empty */
+  ;
+
+
+output
+  : print expr
+    {
+    if(*$2 == PiDD(-1))
+    {
+      yyerror("<WARNING> Memory overflow");
+      *$2 = PiDD(0);
+    }
+    PermEnum(*$2);
+    delete $2;
+    }
+  | print QUOTIENT IDVAR expr
+    {
+      if(*$4 == PiDD(-1))
+      {
+        yyerror("<WARNING> Memory overflow");
+        *$4 = PiDD(0);
+      }
+      if(strcmp($3.str, "size") == 0)
+      {
+        char a[32];
+	B_ITOSTR($4 -> Size(), a);
+        bout << " " << a;
+        BDD_GC();
+	B_ITOSTR(BDD_Used(), a);
+        bout << " (" << a << ")";
+        bout.Return();
+        delete $4;
+      }
+      else if(strcmp($3.str, "count") == 0)
+      {
+        char a[32];
+	B_ITOSTR($4 -> Card(), a);
+        bout << " " << a;
+        bout.Return();
+        delete $4;
+      }
+      else if(strcmp($3.str, "enum2") == 0)
+      {
+        PermEnum2(*$4);
+        delete $4;
+      }
+      else if(strcmp($3.str, "export") == 0)
+      {
+        $4 -> GetZBDD().Export();
+        delete $4;
+      }
+      else
+      {
+        yyerror("Illegal switch");
+        delete $4;
+      }
+      delete[] $3.str;
+    }
+  | print QUOTIENT IDVAR FNAME expr
+    {
+      if(strcmp($3.str, "export") == 0)
+      {
+        $4.str[$4.len - 1] = 0;
+        FILE *fp;
+        fp = fopen($4.str+1, "w");
+        if(fp == NULL) yyerror("Can't open the file");
+	else $5 -> GetZBDD().Export(fp);
+	fclose(fp);
+      }
+      else
+      {
+        yyerror("Illegal switch");
+      }
+      delete[] $3.str;
+      delete[] $4.str;
+      delete $5;
+    }
+  ;
+  | print FNAME
+    {
+      $2.str[$2.len - 1] = 0;
+      cout << $2.str+1 << "\n";
+      cout.flush();
+      delete[] $2.str;
+    }
+  ;
+
+print
+  : PRINT
+  | QUESTION
+  ;
+
+help
+  : HELP
+  | QUESTION
+  ;
+%%
+

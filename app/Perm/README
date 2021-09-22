@@ -1,0 +1,10 @@
+Permutation Manipulator
+
+Command syntax:
+ perm [-ZDDsize] [filename]
+
+perm          executable file.
+perm.help     help text file referred by perm.
+perm.man      program manual (in Japanese).
+COPYRIGHT     copyright form
+README        this file.

@@ -1,0 +1,10 @@
+Arithmetic Boolean Expression Manipulator Sapporo Edition
+
+Command syntax:
+ bemII [-BDDsize] [filename]
+
+bemII         executable file.
+bemII.help    help text file referred by bemII.
+bemII-man.pdf program manual (in Japanese).
+COPYRIGHT     copyright form
+README        this file.

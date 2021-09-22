@@ -1,0 +1,2838 @@
+************** C++版BDDパッケージ(SAPPORO-1.80)　ドキュメント *************
+著者: 湊　真一　北海道大学　大学院情報科学研究科
+最新更新日: 2017.2.26
+****************************************************************************
+
+パッケージの概要
+・このパッケージはBDDの基本操作を行うC++のクラスライブラリである。
+　本プログラムは、32ビットまたは64ビットの計算機で動作する。
+　（コンパイル時に、オプションB_64を指定すると64ビットモードとなる）
+　各操作はC++のメソッド呼び出しにより実行される。
+
+・入力変数番号(通称VarID)は1から始まるint型の整数で識別する（0は定数を表す）。
+　負の変数番号は用いない。VarIDの最大値は定数BDD_MaxVarで与えられる。
+　デフォルトは65535(16ビット)。
+
+・各VarIDごとにBDDでの上下の順位(通称level)の情報を保持している。
+　levelもまた1から始まるint型の整数で識別する。大きい数値ほど
+　上位の変数を表す（BDDの根に近く、先に展開される）。
+　VarIDを何も指定せずに生成した場合はVarIDと同じ値のlevelを持つ。
+
+・論理演算結果のBDDは、32ビット（または64ビット）のunsigned int
+ （bddwordという名前の型にtypedefされている）のインデックスで返される。
+　BDDは論理関数に対して一意であり、インデックスの値もBDDに対して
+　一意である。したがって、２つの論理演算結果が等価であるかどうかは、
+　演算結果のインデックスの値が同じかどうかを比較することで行える。
+
+・BDD節点テーブルの最大サイズは、BDD_Init() の２つの引数で指定する。
+　BDD_Initを省略した場合の default は、初期値 256、最大値 1,024に
+　設定されている。計算中に記憶あふれを起こした場合は、計算を中断して、
+　nullオブジェクトBDD(-1) を返す。
+
+・提供するクラスとその依存関係:
+　BDD                 BDDで表現された個々の論理関数を指すクラス
+　 |-- BDDV           BDDの配列（論理関数の配列）を表すクラス
+　 |　  |-- BtoI      ２値入力整数値出力の論理関数を表すクラス
+   |
+　 |-- BDDDG          BDDを単純直交分解した結果を表すクラス
+　 |- ZBDD            ゼロサプレス型BDDで表現された組合せ集合を指すクラス
+ 　    |-- ZBDDV      ZBDDの配列（組合せ集合の配列）を表すクラス
+       |    |-- CtoI  整数値組合せ集合（整係数ユネイト論理式）を表すクラス
+       |
+ 　    |-- SOP        正負のリテラルからなる積和形論理式を表現するクラス
+　　　 |    |-- SOPV  SOPの配列（積和形論理式の配列）を表すクラス
+       |
+       |-- PiDD       順列集合を表現するクラス
+       |-- SeqBDD     系列集合を表現するクラス
+       |-- ZBDDDG     ZBDDを単純直交分解した結果を表すクラス
+
+・BDDクラスの使用例
+　int x = BDD_NewVar();
+　int y = BDD_NewVar();
+　BDD f1 = BDDvar(x);
+　BDD f2 = BDDvar(y);
+　BDD f3 = ~ f1 & f2;
+　BDD f4 = (~f1 ^ f3) | f2;
+　f3.Print();
+　f4.Print();
+
+
+
+
+
+**************************************************************************
+クラス名: BDD --- BDDで表現された個々の論理関数を指すクラス
+**************************************************************************
+ヘッダーファイル名: "BDD.h"
+ソースファイル名: BDD.cc
+内部から呼び出しているクラス: （無し）
+
+---------------------関連する定数値---------------------
+extern const bddword BDD_MaxNode 
+１ワードで区別できる節点数の最大値。32ビットマシンでは2の30乗に、
+64ビットマシンでは２の38乗にセットされているが、メモリ容量の限界が
+あるので、実際にはもっと少ない個数しか扱うことはできない。
+現実の最大節点数は、BDD_Init()の引数で指定する。
+
+extern const int BDD_MaxVar 
+入力変数番号の最大値。通常 65535。
+
+---------------------関連する外部関数---------------------
+void BDD_Init(bddword init, bddword limit)
+処理系を初期化しメモリの確保を行う。bddword は unsigned int の別名である。
+引数initで、最初にメモリを確保するBDD節点数を指定する。以後、演算中
+にメモリを使い切った場合は、自動的にメモリの再確保が行われる。再確保毎に
+節点数は 4倍に拡大される。拡大の上限は、引数limitによって指定できる。
+使用節点数がlimitに達したときは、メモリの再確保はそれ以上行われず、
+ガベジコレクションが起動され、空き節点が自動的に回収される。initは、
+256以上でなければならず 、limitを越えてはならない。limitは、256 以上でなければならず、上限は計算機のメモリ容量に依存する。（1節点当たり約25バイト必要とする。） 
+BDD_Init()による初期化が正常に行われた場合には、関数の値として0を返し、
+メモリ確保に失敗した場合1を返す。BDD_Init()を複数回実行すると、前回の
+内容がクリアされ、再度初期化される。BDD_Init()を一度も実行せずに演算を開始した
+場合は、init=256, limit=1024が仮定される。
+
+int BDD_NewVar(void)
+新しい入力変数を１つ生成し、その変数番号(通称VarID)を返す。VarIDは1から
+始まる整数で、BDD_NewVar()またはBDD_NewVarOfLev()を1回実行するごとに
+1ずつ大きな値が返る。生成した変数のBDD展開順位(通称level)は、VarIDと
+同様に下位から順番に割り当てられる。変数の個数が最大値BDD_MaxVarを
+超えるとエラーを出力して異常終了する。
+なお、最初にBDDV_Init()で初期化した場合（BDDVクラスを扱う場合）には、
+最初にシステム用に変数が使われるので、VarIDは (BDDV_SysVarTop + 1)から
+開始し、順に1ずつ大きな値となる。
+
+int BDD_NewVarOfLev(int lev)
+新しい入力変数を１つ生成し、その変数番号(通称VarID)を返す。VarIDは1から
+始まる整数で、BDD_NewVar()またはBDD_NewVarOfLev()を1回実行するごとに
+1ずつ大きな値が返る。生成した変数のBDD展開順位(通称level)は、引数levで
+指定した値となる。実行時に順位levの変数がすでに存在していた場合は、
+lev以上の変数を１つずつ上にずらして（levelを１ずつ増加させて）、空いた
+ところに新しい変数を挿入する。引数levは1以上かつ「関数実行直前の変数の
+個数＋１」以下でなければならない。そうでなければエラーを出力して異常終了する。
+変数の個数が最大値BDD_MaxVarを超えるとエラーを出力して異常終了する。
+
+int BDD_LevOfVar(int v) 
+引数vで指定した変数番号(通称VarID）のBDD展開順位(通称level)を返す。
+引数vは1以上かつ「現在の変数の個数」以下でなければならない。
+そうでなければエラーを出力して異常終了する。
+
+int BDD_VarOfLev(int lev)
+引数levで指定したBDD展開順位(通称level)を持つ変数番号(通称VarID)を返す。
+引数levは1以上かつ「現在の変数の個数」以下でなければならない。
+そうでなければエラーを出力して異常終了する。
+
+int BDD_VarUsed(void)
+現在までに宣言した入力変数の個数を返す。
+
+int BDD_TopLev(void)
+現在までに宣言した入力変数の最上位変数の順位(Level)を返す。
+最初にBDDV_Init()で初期化した場合（BDDVクラスを扱う場合）には、
+BDD_VarUsed() + BDDV_SysVarTop に等しい。
+BDD_Init()で初期化した場合は、BDD_VarUsed() と等しい。
+
+bddword BDD_Used(void)
+現在使用中の総節点数を返す。使用済みで再利用可能な節点も、実際に
+回収されるまでは使用中として数えるため、正確な節点数を知るには、
+直前に BDD_GC()を実行（ガベジコレクション起動）する必要がある。
+
+void BDD_GC(void)
+強制的にガベジコレクション（不要な節点の回収）を行う。BDD_GC()を陽に
+起動しなくても、記憶が足りなくなった場合には自動的に起動される。
+ガベジコレクションで空き節点が回収された場合は 0 を返し、空き節点が
+１個も見つからなかった場合は 1 を返す。
+
+bddword BDD_CacheInt(unsigned char op, bddword f, bddword g)
+f と g の演算結果が数値のとき、演算結果をキャッシュから参照する。
+引数op は演算の種類を表す番号で、20 以上の値を入れる。演算結果が
+登録されている場合はその数値を返し、見つからなかった場合は、
+BDD_MaxNode よりも大きな値を返す。f, g が BDD 型の演算の場合は、
+GetID()で bddword 型に変換して与える。
+
+BDD BDD_CacheBDD(unsigned char op, bddword f, bddword g)
+f と g の演算結果が BDD 型のとき、演算結果をキャッシュから参照する。
+op は演算の種類を表す番号で、20 以上の値を入れる。演算結果が登録されて
+いる場合はその BDD を返し、見つからなかった場合は、null を表すオブジェ
+クトを返す。f, g が BDD 型の演算の場合は、GetID()で bddword 型に変換して与える。
+
+void BDD_CacheEnt(unsigned char op, bddword f, bddword g, bddword h)
+f と g の演算結果 h をキャッシュに登録する。op は演算の種類を表す番
+号で、20 以上の値を入れる。被演算子や演算結果が数値のときは、そのま
+ま与える。BDD 型の演算の場合は、GetID()で bddword 型に変換して与える。
+
+BDD BDDvar(int var)
+入力変数番号var の変数そのもの（恒等関数）を表すBDDオブジェクトを
+生成し、それを返す。記憶あふれの場合は、null を表すオブジェクトを返す。
+
+BDD operator&(const BDD& f, const BDD& g)
+f と g の論理積を表すBDDオブジェクトを生成し、それを返す。記憶あふれの
+場合は、null を表すオブジェクトを返す。引数にnullを与えた場合には
+nullを返す。
+
+BDD operator|(const BDD& f, const BDD& g)
+f と g の論理和を表すBDDオブジェクトを生成し、それを返す。記憶あふれの
+場合は、null を表すオブジェクトを返す。引数にnullを与えた場合には
+nullを返す。
+
+BDD operator^(const BDD&, const BDD&)
+f と g の排他的論理和を表すBDDオブジェクトを生成し、それを返す。
+記憶あふれの場合は、null を表すオブジェクトを返す。引数にnullを与えた場合
+にはnullを返す。
+
+int operator==(const BDD& f, const BDD& g)
+f と g が同じ論理関数かどうかの真偽(1/0)を返す。
+
+int operator!=(const BDD& f, const BDD& g)
+f と g が異なる論理関数かどうかの真偽(1/0)を返す。
+
+int BDD_Imply(const BDD& f, const BDD& g)
+f と g の包含性判定を行う。すなわち、(~f | g) が恒真かどうかを調べる。
+(~f | g) のBDDオブジェクトを生成せずに判定だけを行うので、(~f | g)の
+演算を実行するよりも高速である。引数にnullを与えた場合には0を返す。
+
+BDD BDD_Import(FILE *strm = stdin)
+strmで指定するファイルからBDDの構造を読み込み、BDDオブジェクトを生成して、それを返す。ただし、ファイルに書かれているデータが多出力であった場合は、最初の出力の論理関数のみ読み込む。ファイルに文法誤りが合った場合等、異常終了時はnullを返す。
+
+BDD BDD_Random(int dim, int density = 50)
+入力数 dim (変数のlevelが1からdimまで）の乱数論理関数（真理値表が
+乱数表である論理関数）を表すBDDオブジェクトを生成し、それを返す。
+引数density によって、真理値表濃度（１の出現確率％）を指定することが
+できる。記憶あふれの場合は、null を表すオブジェクトを返す。
+
+void BDDerr(char *msg)
+void BDDerr(char *msg, bddword key)
+void BDDerr(char *msg, char *name)
+引数として与えた文字列や数値をエラー出力に表示し、異常終了する。
+通常、内部で回復不可能なエラーが起きたときに自動的に呼び出されるが、
+何らかの理由で処理を途中終了したいときに陽に用いても良い。
+
+---------------------公開クラスメソッド---------------------
+BDD::BDD(void)
+基本constructer。初期値として恒偽関数を表すBDDオブジェクトを生成する。
+
+BDD::BDD(int val)
+定数論理関数のオブジェクトを作り出す constructer。val == 0 ならば恒偽関数、
+val > 0 ならば恒真関数、val < 0 ならば null を表すBDDオブジェクトを生成する。
+
+BDD::BDD(const BDD& f)
+引数 f を複製する constructer。
+
+BDD::~BDD(void)
+destructer。内部のBDD節点の記憶管理は自動化されており、使用済みの節点は適当なタイミングで回収され、再利用される。
+
+BDD& BDD::operator=(const BDD& f)
+自分自身に f を代入し、fを関数値として返す。
+
+BDD BDD::operator&=(const BDD& f)
+自分自身と f との論理積を求め、自分自身に代入する。演算結果を関数値として返す。
+記憶あふれの場合は、null を表すオブジェクトを返す。自分自身が null のときは何もしない。f が null のときは、null を代入する。
+
+BDD BDD::operator|=(const BDD& f)
+自分自身と f との論理和を求め、自分自身に代入する。演算結果を関数値として返す。
+記憶あふれの場合は、null を表すオブジェクトを返す。自分自身が null のときは何もしない。f が null のときは、null を代入する。
+
+BDD BDD::operator^=(const BDD& f)
+自分自身と f との排他的論理和を求め、自分自身に代入する。演算結果を関数値
+として返す。記憶あふれの場合は、null を表すオブジェクトを返す。自分自身が
+null のときは何もしない。f が null のときは、null を代入する。
+
+BDD BDD::operator<<=(int s)
+自分自身のグラフに対して、関係する全ての入力変数を展開順位(level)がsずつ
+大きい（上位にある）変数の変数番号(VarID)にそれぞれ書き換えてBDDを複製した
+論理関数を、自分自身に代入する。また演算結果を関数値として返す。
+実行結果において未定義の入力変数が必要になるようなsを与えてはならない。
+必要な入力変数はあらかじめ宣言しておくこと。記憶あふれの場合は、null を表す
+オブジェクトを返す。自分自身が null のときは何もしない。sに負の値を指定する
+ことはできない。
+
+BDD BDD::operator>>=(int s)
+自分自身のグラフに対して、関係する全ての入力変数を展開順位(level)がsずつ
+小さい（下位にある）変数の変数番号(VarID)にそれぞれ書き換えてBDDを複製した
+論理関数を、自分自身に代入する。また演算結果を関数値として返す。
+実行結果において未定義の入力変数が必要になるようなsを与えてはならない。
+したがって、fに関係しない入力変数が下位レベルにあらかじめ用意されていなければ
+ならない。記憶あふれの場合は、null を表すオブジェクトを返す。自分自身がnullの
+ときは何もしない。sに負の値を指定することはできない。
+
+BDD BDD::operator~(void) const
+自分自身の否定の論理関数を表すBDDオブジェクトを生成し、それを返す。
+自分自身が null のときは、null を返す。
+
+BDD BDD::operator<<(int s) const 
+自分自身のグラフに対して、関係する全ての入力変数を展開順位(level)がsずつ
+大きい（上位にある）変数の変数番号(VarID)にそれぞれ書き換えてBDDを複製した
+オブジェクトを生成し、それを返す。実行結果において未定義の入力変数が必要に
+なるようなsを与えてはならない。必要な入力変数はあらかじめ宣言しておくこと。
+記憶あふれの場合は、nullを表すオブジェクトを返す。自分自身がnullのときは
+何もしない。sに負の値を指定することはできない。
+
+BDD BDD::operator>>(int) const 
+自分自身のグラフに対して、関係する全ての入力変数を展開順位(level)がsずつ
+小さい（下位にある）変数の変数番号(VarID)にそれぞれ書き換えてBDDを複製した
+オブジェクトを生成し、それを返す。実行結果において未定義の入力変数が必要
+になるようなsを与えてはならない。したがって、fに関係しない入力変数が
+下位レベルにあらかじめ用意されていなければならない。記憶あふれの場合は、
+nullを表すオブジェクトを返す。自分自身がnullのときは何もしない。
+sに負の値を指定することはできない。
+
+BDD BDD::At0(int var) const 
+自分自身のグラフに対して、番号varの入力変数を0に固定したときの
+論理関数（射影）を表すBDDオブジェクトを生成し、それを返す。記憶あふれ
+の場合は、null を表すオブジェクトを返す。自分自身がnullのときは、
+nullを返す。
+
+BDD BDD::At1(int var) const 
+自分自身のグラフに対して、番号varの入力変数を1に固定したときの
+論理関数（射影）を表すBDDオブジェクトを生成し、それを返す。記憶あふれ
+の場合は、null を表すオブジェクトを返す。自分自身がnullのときは、
+nullを返す。
+
+BDD BDD::Cofact(BDD f) const 
+自分自身のグラフに対して、f = 0 の部分を don't care とみなして簡単化を
+行った論理関数を表すBDDオブジェクトを生成し、それを返す。記憶あふれの場合
+は、null を表すオブジェクトを返す。自分自身が null のとき、および f が
+nullのときは、null を返す。
+
+BDD BDD::Univ(BDD f) const 
+全称作用演算(universal quantification)。f で指定した入力変数の部分集合
+に0,1の定数を代入したときに、どのような0,1の組合せを代入しても常に自分
+自身が1となる場合には1を返し、それ以外は0を返すような論理関数を表すオ
+ブジェクトを生成し、それを返す。入力変数の部分集合の指定は、それらの変
+数すべての論理和を表す論理関数を作って与える。記憶あふれの場合は、null 
+を表すオブジェクトを返す。自分自身が null のとき、および f がnullのと
+きは、null を返す。
+
+BDD BDD::Exist(BDD f) const 
+存在作用演算(universal quantification)。f で指定した入力変数の部分集合
+に0,1の定数を代入したときに、どのような0,1の組合せを代入しても常に自分
+自身が0となる場合には0を返し、それ以外は1を返すような論理関数を表すオ
+ブジェクトを生成し、それを返す。入力変数の部分集合の指定は、それらの変
+数すべての論理和を表す論理関数を作って与える。記憶あふれの場合は、null 
+を表すオブジェクトを返す。自分自身が null のとき、および f がnullのと
+きは、null を返す。
+
+BDD BDD::Support(void) const 
+自分自身の論理関数の値に影響を与える入力変数の集合を抽出し、それらの変
+数すべての論理和を表すオブジェクトを作りそれを返す。記憶あふれの場合は、
+null を表すオブジェクトを返す。自分自身が null のとき、および f がnull
+のときは、null を返す。
+
+int BDD::Top(void) const 
+自分自身のグラフに対して、最上位の入力変数の番号を返す。定数関数または
+null のときは、0 を返す。
+
+bddword BDD::Size(void) const 
+自分自身のグラフの節点数を返す。null に対しては 0を返す。
+
+void BDD::Export(FILE *strm = stdout) const 
+BDDの内部データ構造を、strmで指定するファイルに出力する。
+
+void BDD::XPrint0(void) const 
+自分自身のグラフを、X-Window に描画する。（否定エッジなし）
+
+void BDD::XPrint(void) const 
+自分自身のグラフを、X-Window に描画する。（否定エッジなし）
+
+bddword BDD::GetID(void) const 
+論理関数を一意に表現する 1-word の識別番号（内部インデックス値）を返す。
+
+void BDD::Print(void) const 
+BDDの内部インデックス値、最上位の変数番号、節点数の情報を標準出力に出力する。
+
+BDD BDD::Swap(int var1, int var2) const 
+自分自身のグラフに対して、変数番号var1とvar2の入力変数を
+入れ換えたときの論理関数を表すオブジェクトを生成し、それを返す。
+引数はlevelではなく、変数番号で与えることに注意。記憶あふれの場合は、
+nullを表すオブジェクトを返す。自分自身がnullのときは、nullを返す。
+
+BDD BDD::Smooth(int var) const 
+自分自身のグラフに対して、指定した変数番号varの順位よりも低い順位を持つ
+全ての入力変数に、あらゆる0,1の組合せを代入したときに、関数の値が真になる
+組合せが１つでもあるか否かを表すBDDを生成し、それを返す。計算結果のBDD
+にはvarおよびそれ以下の順位を持つ変数の節点は含まれない。記憶あふれの
+場合は、nullを表すオブジェクトを返す。自分自身がnullのときは、nullを返す。
+
+
+
+
+
+
+
+
+**************************************************************************
+クラス名: BDDV  --- BDDの配列（論理関数の配列）を表すクラス
+**************************************************************************
+ヘッダーファイル名: "BDD.h"
+ソースファイル名: BDD.cc
+内部から呼び出しているクラス: BDD
+
+BDD の配列を表すクラスである。配列長は可変である。要素の番号は 0 か
+ら始まる整数である。内部構造は、「出力選択変数」を導入して、
+１個のBDDに束ねて配列を表現しているので、もし配列長が大きくても、
+各要素が同じ関数であれば、メモリ使用量は１個のBDDと変わらない。
+また、配列の複製が配列長に関わらず定数時間で行える。
+BDDV_Init()を実行すると、入力変数番号1からBDDV_SysVarTop(通常20）までの
+変数が出力選択変数としてシステムに確保され、ユーザが論理演算に用いる
+入力変数はその次の番号(通常21)から始まる。出力選択変数はユーザ変数よりも
+必ず上位になるように自動的に配置される。
+
+---------------------関連する定数値---------------------
+extern const int BDDV_SysVarTop
+出力選択変数の個数。通常20である。ユーザの使用する論理変数の
+番号は(BDDV_SysVarTop + 1)番から始まる。
+
+extern const int BDDV_MaxLen
+配列の最大長。BDDV_SysVarTopのべき乗である。
+
+extern const bddword BDD_MaxNode 
+extern const int BDD_MaxVar 
+---------------------関連する外部関数---------------------
+void    BDDV_Init(bddword init, bddword limit)
+BDD_Init()と同様に、処理系を初期化しメモリの確保を行う。BDD_Init()との
+相違点は、出力選択変数の確保を行う点である。入力変数番号1から
+BDDV_SysVarTop(通常20）までの変数が、出力選択変数としてシステムに
+確保され、ユーザが論理演算に用いる入力変数はその次の番号(通常21)から
+始まる。出力選択変数はユーザ変数よりも必ず上位になるように自動的に
+配置される。BDDVを用いる場合は、必ず最初にBDDV_Init()を実行しなければ
+ならない。
+
+int BDDV_UserTopLev(void)
+（このメソッドは旧版で用いていた。なくても困らないはずである）
+現在までにユーザが宣言した論理変数の個数。出力選択変数は含まれない。
+この数値は、現在までにユーザが宣言した論理変数の順位(level)の最上位の
+順位番号と等しい。出力選択変数の順位番号(level)は、そのすぐ上の範囲に
+あり、(BDDV_UserTopLev + 1)から(BDDV_UserTopLev + BDDV_SysVarTop)までの
+間である。
+
+int BDDV_NewVar(void)
+（このメソッドは旧版で用いていた。なくても困らないはずである）
+BDD_NewVar()と同様に、新しい入力変数を１つ生成し、その変数番号(通称VarID)を
+返す。BDD_NewVar()との違いは、VarIDが1から始まるのではなく、
+(BDDV_SysVarTop + 1)から始まる点である。ただし変数の順位(通称level)は1から
+スタートする。出力選択変数のlevelは1ずつ上位にシフトしていく。
+
+int BDDV_NewVarOfLev(int lev)
+（このメソッドは旧版で用いていた。なくても困らないはずである）
+BDD_NewVarOfLev()と同様に、順位（通称level）を指定して新しい入力変数を
+１つ生成し、その変数番号(通称VarID)を返す。BDD_NewVar()との違いは、
+VarIDが1から始まるのではなく、(BDDV_SysVarTop + 1)から始まる点である。
+ただし指定できる変数の順位(通称level)は、1以上かつ「これまでユーザが宣言
+した変数の個数 +1」までである。出力選択変数のlevelは1ずつ上位にシフトしていく。
+
+BDDV operator&(const BDDV& fv, const BDDV& gv)
+fvとgvの各要素同士の論理積を表すBDDVオブジェクトを生成し、それを返す。
+配列長が一致していなければエラー（異常終了）。記憶あふれの場合は 長さ1のnullを
+返す。引数にnullが含まれていた場合には、長さ1のnullを返す。
+
+BDDV operator|(const BDDV& fv, const BDDV& gv)
+fvとgvの各要素同士の論理和を表すBDDVオブジェクトを生成し、それを返す。
+配列長が一致していなければエラー（異常終了）。記憶あふれの場合は 長さ1のnullを
+返す。引数にnullが含まれていた場合には、長さ1のnullを返す。
+
+BDDV operator^(const BDDV& fv, const BDDV& gv)
+fvとgvの各要素同士の排他的論理和を表すBDDVオブジェクトを生成し、それを返す。
+配列長が一致していなければエラー（異常終了）。記憶あふれの場合は 長さ1のnullを
+返す。引数にnullが含まれていた場合には、長さ1のnullを返す。
+
+int operator==(const BDDV& fv, const BDDV& gv)
+fvとgvの対応する要素が全て同じ論理関数かどうかの真偽(1/0)を返す。
+配列長が一致していなければエラー（異常終了）。
+
+int operator!=(const BDDV& fv, const BDDV& gv)
+fvとgvの対応する要素の少なくとも1組が異なる論理関数かどうかの
+真偽(1/0)を返す。配列長が一致していなければエラー（異常終了）。
+
+int BDDV_Imply(BDDV fv, BDDV gv)
+fv と gv の包含性判定を行う。すなわち、(~fv | gv) が全ての要素について
+恒真かどうかを調べる。(~fv | gv) のBDDVオブジェクトを生成せずに
+判定だけを行うので、(~fv | gv)の演算を実行するよりも高速である。
+引数にnullを与えた場合には0を返す。
+
+BDDV BDDV_Import(FILE *strm = stdin)
+strmで指定するファイルからBDDVの構造を読み込み、BDDVオブジェクトを生成して、それを返す。ファイルに文法誤りが合った場合等、異常終了時はnullを返す。
+
+BDDV operator||(const BDDV& fv, const BDDV& gv)
+fvの末尾にgvを連結したBDDVオブジェクトを生成し、それを返す。
+fv, gv は変化しない。fv の配列長が２のべき乗数のとき、処理効率がよい。
+記憶あふれの場合は 長さ1のnullを返す。引数にnullが含まれていた場合には、
+長さ1のnullを返す。
+
+BDDV BDDV_Mask1(int ix, int len)
+ix 番目の要素だけが恒真関数で、他は恒偽関数となっているような、長さ
+len の多出力定数論理関数を表すBDDVオブジェクトを生成し、それを返す。
+記憶あふれの場合は 長さ1のnullを返す。引数にnullが含まれていた場合には、
+長さ1のnullを返す。不当な引数を与えた場合はエラー（異常終了）。
+
+BDDV BDDV_Mask2(int ix, int len)
+0番目〜(ix-1) 番目の要素が恒偽関数で、ix番目以降は恒真関数となっているような、
+長さlen の多出力定数論理関数を表すBDDVオブジェクトを生成し、それを返す。
+記憶あふれの場合は 長さ1のnullを返す。引数にnullが含まれていた場合には、
+長さ1のnullを返す。不当な引数を与えた場合はエラー（異常終了）。
+
+(再掲)
+int BDD_NewVar(void)
+int BDD_NewVarOfLev(int lev)
+int BDD_LevOfVar(int v) 
+int BDD_VarOfLev(int lev)
+int BDD_VarUsed(void)
+int BDD_TopLev(void)
+bddword BDD_Used(void)
+void BDD_GC(void)
+
+---------------------公開クラスメソッド---------------------
+BDDV::BDDV(void)
+基本constructer。配列長 0 のBDDVオブジェクトを生成する。
+
+BDDV::BDDV(const BDDV& fv)
+引数 fv を複製する constructer。
+
+BDDV::BDDV(const BDD&, int len = 1)
+引数 fで指定したBDDがlen個続けて並んでいるBDDVオブジェクトを
+生成するconstructer。f に null を与えた場合は、len指定に関わらず
+長さ1となる。
+
+BDDV::~BDDV(void)
+destructer。
+
+BDDV& BDDV::operator=(const BDDV& fv)
+自分自身の元のデータを消去し、fv を代入する。関数の値としてfvを返す。
+
+BDDV BDDV::operator&=(const BDDV& fv)
+自分自身と fv の各要素同士の論理積を求め、自分自身に代入する。配列長は一致
+していなければならない。記憶あふれの場合は 長さ1のnullを返す。自分自身
+または引数にnullが含まれていた場合には、長さ1のnullを返す。
+
+BDDV BDDV::operator|=(const BDDV& fv)
+自分自身と fv の各要素同士の論理和を求め、自分自身に代入する。配列長は一致
+していなければならない。記憶あふれの場合は 長さ1のnullを返す。自分自身
+または引数にnullが含まれていた場合には、長さ1のnullを返す。
+
+BDDV BDDV::operator^=(const BDDV& fv)
+自分自身と fv の各要素同士の排他的論理和を求め、自分自身に代入する。配列長は
+一致していなければならない。記憶あふれの場合は 長さ1のnullを返す。自分自身
+または引数にnullが含まれていた場合には、長さ1のnullを返す。
+
+BDDV BDDV::operator<<=(int s)
+自分自身の各要素に対して、関係する全ての入力変数を展開順位(level)がsずつ
+大きい（上位にある）変数の変数番号(VarID)にそれぞれ書き換えて複製した
+BDDVを、自分自身に代入する。また演算結果を関数値として返す。出力選択変数には
+影響はない。実行結果において未定義の入力変数が必要になるようなsを与えて
+はならない。必要な入力変数はあらかじめ宣言しておくこと。記憶あふれの場合は、
+null を表すオブジェクトを返す。自分自身が null のときは何もしない。sに負の値を
+指定することはできない。
+
+BDDV BDDV::operator>>=(int s)
+自分自身の各要素に対して、関係する全ての入力変数を展開順位(level)がsずつ
+小さい（下位にある）変数の変数番号(VarID)にそれぞれ書き換えて複製した
+BDDVを、自分自身に代入する。また演算結果を関数値として返す。出力選択変数には
+影響はない。実行結果において未定義の入力変数が必要になるようなsを与えて
+はならない。必要な入力変数はあらかじめ宣言しておくこと。記憶あふれの場合は、
+null を表すオブジェクトを返す。自分自身が null のときは何もしない。sに負の値を
+指定することはできない。
+
+BDDV BDDV::operator~(void) const 
+自分自身の各要素の否定関数を表すBDDVオブジェクトを生成し、それを返す。
+自分自身にnullが含まれていた場合には、長さ1のnullを返す。
+
+BDDV BDDV::operator<<(int s) const 
+自分自身の各要素に対して、関係する全ての入力変数を展開順位(level)がsずつ
+大きい（上位にある）変数の変数番号(VarID)にそれぞれ書き換えて複製した
+BDDVを生成し、それを返す。出力選択変数には影響はない。実行結果において
+未定義の入力変数が必要になるようなsを与えてはならない。必要な入力変数は
+あらかじめ宣言しておくこと。記憶あふれの場合は、null を表すオブジェクトを返す。
+自分自身が null のときは何もしない。sに負の値を指定することはできない。
+
+BDDV BDDV::operator>>(int s) const 
+自分自身の各要素に対して、関係する全ての入力変数を展開順位(level)がsずつ
+小さい（下位にある）変数の変数番号(VarID)にそれぞれ書き換えて複製した
+BDDVを生成し、それを返す。出力選択変数には影響はない。実行結果において
+未定義の入力変数が必要になるようなsを与えてはならない。必要な入力変数は
+あらかじめ宣言しておくこと。記憶あふれの場合は、null を表すオブジェクトを返す。
+自分自身が null のときは何もしない。sに負の値を指定することはできない。
+
+BDDV BDDV::At0(int var) const 
+自分自身の各要素に対して、変数番号 varの入力変数を0に固定したときの
+論理関数（射影）を表すオブジェクトを生成し、それを返す。記憶あふれの場
+合は 長さ1のnullを返す。自分自身にnullが含まれていた場合には、長さ1の
+nullを返す。不当な引数を与えた場合はエラー（異常終了）となる。
+
+BDDV BDDV::At1(int var) const 
+自分自身の各要素に対して、変数番号 varの入力変数を1に固定したときの
+論理関数（射影）を表すオブジェクトを生成し、それを返す。記憶あふれの場
+合は 長さ1のnullを返す。自分自身にnullが含まれていた場合には、長さ1の
+nullを返す。不当な引数を与えた場合はエラー（異常終了）となる。
+
+BDDV BDDV::Cofact(BDDV fv) const 
+自分自身の各要素に対して、fv = 0 の部分を don't care とみなして簡単化を
+行った論理関数を表すBDDVオブジェクトを生成し、それを返す。記憶あふれの場合は
+長さ1のnullを返す。自分自身または引数にnullが含まれていた場合には、
+長さ1のnullを返す。
+
+BDDV BDDV::Swap(int var1, int var2) const 
+自分自身の各要素に対して、番号 var1 と var2 の入力変数を入れ換えた
+ときの論理関数を表すBDDVオブジェクトを生成し、それを返す。levelではなく
+VarIDを指定することに注意。記憶あふれの場合は 長さ1のnullを返す。自分
+自身にnullが含まれていた場合には、長さ1のnullを返す。不当な引数を与えた
+場合はエラー（異常終了）となる。
+
+int BDDV::Top(void) const 
+自分自身の各要素に関して、最上位の入力変数の番号（各要素の中の最大値）
+を返す。全要素が定数関数のときは0を返す。自分自身にnullが含まれてい
+た場合には、0を返す。
+
+bddword BDDV::Size(void) const 
+自分自身のBDDVの節点数を返す。各要素のBDDは互いにサブグラフを共有する
+ので、各要素のサイズの総和より小さいことがある。自分自身にnullが含まれて
+いた場合には、0を返す。出力選択変数に関する節点は含まない。
+
+void BDDV::Export(FILE *strm = stdout) const 
+BDDVの内部データ構造を、strmで指定するファイルに出力する。
+
+void BDDV::XPrint0(void) const 
+自分自身のグラフを、X-Window に描画する。（否定エッジなし）
+
+void BDDV::XPrint(void) const 
+自分自身のグラフを、X-Window に描画する。（否定エッジあり）
+
+BDDV BDDV::Former(void) const 
+自分自身の前半部分列を表すBDDVオブジェクトを生成し、それを返す。
+前半部分列の長さは、元の配列長より小さな、最大の２のべき乗数である。
+ただし、元の長さが１以下のときは、前半部分列の長さは０とする。
+自分自身にnullが含まれていた場合には、長さ1のnullを返す。
+不当な引数を与えた場合はエラー（異常終了）となる。
+
+BDDV BDDV::Latter(void) const 
+自分自身の後半部分列を表すBDDVオブジェクトを生成し、それを返す。
+後半部分列は、前半部分列に含まれない部分のことを言う。記憶あふれの
+場合は 長さ1のnullを返す。自分自身にnullが含まれていた場合には、
+長さ1のnullを返す。不当な引数を与えた場合はエラー（異常終了）となる。
+
+
+BDDV BDDV::Part(int start, int len) const 
+自分自身の任意の部分列を表すオブジェクトを生成し、それを返す。start 番
+目の要素から始まる len 個の要素を取り出す。記憶あふれの場合は 長さ1のnullを
+返す。自分自身にnullが含まれていた場合には、長さ1のnullを返す。不当な引数を
+与えた場合はエラー（異常終了）となる。
+
+BDD BDDV::GetBDD(int ix) const 
+第 ix 番目の要素の BDD を表すオブジェクトを生成し、それを返す。
+不当なixを与えた場合はエラー（異常終了）となる。
+
+BDD BDDV::GetMetaBDD(void) const 
+内部構造の BDD そのもの（出力選択変数も含む）を表すオブジェクトを
+生成し、それを返す。
+
+int BDDV::Uniform(void) const 
+全要素が同じ要素であるかどうかの真偽（同じならば１）を返す。
+
+int BDDV::Len(void) const 
+配列長を返す。
+
+void BDDV::Print(void) const 
+内部情報を標準出力に出力する。
+
+
+
+
+
+**************************************************************************
+クラス名: BtoI  --- ２値入力整数値出力の論理関数を表すクラス
+**************************************************************************
+ヘッダーファイル名: "BtoI.h"
+ソースファイル名: BtoI.cc
+内部から呼び出しているクラス: BDD, BDDV
+
+整数値論理関数データを表すクラス。整数値論理関数は2値の論理ベクトルから
+整数への関数である。内部データは整数値を２進数で符号化することにより、
+２値の論理関数のベクトルとして、BDDVを用いて表現されている。負数は、
+２の補数表現を採用している。２進数の桁数は、関数が取りうる最大値に
+合わせて、常に自動的に調整される。関数が0から-1の範囲にあれば桁数は
+１となり、1から-2の範囲にあれば２ビット、3から-4の範囲なら３ビット、
+127から-128の範囲では８ビットとなる。桁数の上限は約100万（ただし約100
+を超えると多倍長計算を行うため処理速度が低下する）。最上位ビットは正負の条件を
+表す（負数のときに１）。記憶あふれの場合は、BtoI(BDD(-1))を返す（以下、nullと呼ぶ）。
+
+---------------------関連する定数値---------------------
+extern const int BDDV_SysVarTop
+extern const int BDDV_MaxLen
+extern const bddword BDD_MaxNode 
+extern const int BDD_MaxVar 
+
+---------------------関連する外部関数---------------------
+int operator==(const BtoI& fv, const BtoI& gv)
+２つのBtoIオブジェクトfv, gvが同じ整数値論理関数を表すならば 1、
+そうでなければ 0 を返す。BtoI_EQ() とは意味が違うので注意。
+
+int operator!=(const BtoI& fv, const BtoI& gv)
+２つのBtoIオブジェクトfv, gvが同じ整数値論理関数を表すならば 0、
+そうでなければ 1 を返す。BtoI_NE() とは意味が違うので注意。
+
+BtoI operator+(const BtoI& fv, const BtoI& gv)
+２つのBtoIオブジェクトfv, gvの算術和を表すBtoIオブジェクトを新しく生成
+し、それを値として返す。記憶あふれの場合はnullを返す。引数にnullが含ま
+れる場合はnullを返す。
+
+BtoI operator-(const BtoI& fv, const BtoI& gv)
+２つのBtoIオブジェクトfv, gvの算術差を表すBtoIオブジェクトを新しく生成
+し、それを値として返す。記憶あふれの場合はnullを返す。引数にnullが含ま
+れる場合はnullを返す。
+
+BtoI operator*(const BtoI& fv, const BtoI& gv)
+２つのBtoIオブジェクトfv, gvの算術積を表すBtoIオブジェクトを新しく生成
+し、それを値として返す。記憶あふれの場合はnullを返す。引数にnullが含ま
+れる場合はnullを返す。
+
+BtoI operator/(const BtoI& fv, const BtoI& gv)
+２つのBtoIオブジェクトfv, gvの整数除算の商を表すBtoIオブジェクトを新し
+く生成し、それを値として返す。記憶あふれの場合はnullを返す。引数にnull
+が含まれる場合はnullを返す。結果が負で割り切れないときは、絶対値の小さ
+い方に切り捨てる。（例）10/(-3)= -3
+
+BtoI operator%(const BtoI& fv, const BtoI& gv)
+２つのBtoIオブジェクトfv, gvの算術和を表すBtoIオブジェクトを新しく生成
+し、それを値として返す。記憶あふれの場合はnullを返す。引数にnullが含ま
+れる場合はnullを返す。商が負になる場合でも、fv = gv * (fv / gv) + (fv % gv)
+を満たすように計算する。（例）-10 % 3 = -1
+
+BtoI operator&(const BtoI& fv, const BtoI& gv)
+２つのBtoIオブジェクトfv, gvのビット論理積を表すBtoIオブジェクトを新し
+く生成し、それを値として返す。記憶あふれの場合はnullを返す。引数にnull
+が含まれる場合はnullを返す。
+
+BtoI operator|(const BtoI& fv, const BtoI& gv)
+２つのBtoIオブジェクトfv, gvのビット論理和を表すBtoIオブジェクトを新し
+く生成し、それを値として返す。記憶あふれの場合はnullを返す。引数にnull
+が含まれる場合はnullを返す。
+
+BtoI operator^(const BtoI& fv, const BtoI& gv)
+２つのBtoIオブジェクトfv, gvのビット排他論理和を表すBtoIオブジェクトを
+新しく生成し、それを値として返す。記憶あふれの場合はnullを返す。引数に
+nullが含まれる場合はnullを返す。
+
+BtoI BtoI_ITE(BDD f, BtoI gv, BtoI hv)
+fが1のときはgvを、fが0のときはhvを返すような整数値論理関数を表す
+BtoIオブジェクトを新しく生成し、それを値として返す。記憶あふれの場合は
+nullを返す。引数にnullが含まれる場合はnullを返す。
+
+BtoI BtoI_ITE(BtoI fv, BtoI gv, BtoI hv)
+fvが0以外のときはgvを、fvが0のときはhvを返すような整数値論理関数を
+表すBtoIオブジェクトを新しく生成し、それを値として返す。記憶あふれの場
+合はnullを返す。引数にnullが含まれる場合はnullを返す。
+
+BtoI BtoI_EQ(BtoI fv, BtoI gv)
+fvとgvが同じ出力値となるような入力組合せに対して1、そうでないとき0と
+なるような整数値論理関数を表すBtoIオブジェクトを新しく生成し、それを値
+として返す。operator == とは意味が違うので注意。記憶あふれの場合はnull
+を返す。引数にnullが含まれる場合はnullを返す。
+
+BtoI BtoI_NE(BtoI fv, BtoI gv)
+fvとgvが同じ出力値となるような入力組合せに対して0、そうでないとき1と
+なるような整数値論理関数を表すBtoIオブジェクトを新しく生成し、それを値
+として返す。operator != とは意味が違うので注意。記憶あふれの場合はnull
+を返す。引数にnullが含まれる場合はnullを返す。
+
+BtoI BtoI_GT(BtoI fv, BtoI gv)
+fvがgvより大きい値となるような入力組合せに対して1、そうでないとき0と
+なるような整数値論理関数を表すBtoIオブジェクトを新しく生成し、それを値
+として返す。記憶あふれの場合はnullを返す。引数にnullが含まれる場合は
+nullを返す。
+
+BtoI BtoI_LT(BtoI fv, BtoI gv)
+fvがgvより小さい値となるような入力組合せに対して1、そうでないとき0と
+なるような整数値論理関数を表すBtoIオブジェクトを新しく生成し、それを値
+として返す。記憶あふれの場合はnullを返す。引数にnullが含まれる場合は
+nullを返す。
+
+BtoI BtoI_GE(BtoI fv, BtoI gv)
+fvがgvより大きいか等しい値となるような入力組合せに対して1、そうで
+ないとき0となるような整数値論理関数を表すBtoIオブジェクトを新しく生
+成し、それを値として返す。記憶あふれの場合はnullを返す。引数にnullが含
+まれる場合はnullを返す。
+
+BtoI BtoI_LE(BtoI fv, BtoI gv)
+fvがgvより小さいか等しい値となるような入力組合せに対して1、そうで
+ないとき0となるような整数値論理関数を表すBtoIオブジェクトを新しく生
+成し、それを値として返す。記憶あふれの場合はnullを返す。引数にnullが含
+まれる場合はnullを返す。
+
+BtoI BtoI_atoi(char* s)
+sの指す数字文字列を数値に変換し、定数関数のBtoIオブジェクトを新しく
+生成し、それを値として返す。通常は10進数として変換するが、文字列の先頭
+が ``0X''または ``0x''で始まる場合には16進数、 ``0B'' または ``0b''
+で始まる場合は２進数で変換する。それ以外の不適当な文字を含む文字列に対
+する動作は保証しない。
+
+（再掲）
+void BDDV_Init(bddword init, bddword limit)
+int BDD_NewVar(void)
+int BDD_NewVarOfLev(int lev)
+int BDD_LevOfVar(int v) 
+int BDD_VarOfLev(int lev)
+int BDD_VarUsed(void)
+int BDD_TopLev(void)
+bddword BDD_Used(void)
+void BDD_GC(void)
+
+---------------------公開クラスメソッド---------------------
+BtoI::BtoI(void)
+基本constructer。初期値として恒偽関数（常に０を返す）を表す
+オブジェクトを生成する。
+
+BtoI::BtoI(const BtoI& fv)
+BtoIオブジェクトのコピーを生成するconstructer。
+
+BtoI::BtoI(const BDD& f)
+論理関数fの真偽にしたがって、整数値1/0を返す整数値論理関数を表すBtoIオ
+ブジェクトを生成するconstructer。fがnullの場合は1ビットのnullからな
+るオブジェクトBtoI(BDD(-1))を生成。
+
+BtoI::BtoI(int n)
+定数関数（常に整数値nを返す）を表すBtoIオブジェクトを生成するconstructer。
+
+BtoI::BtoI(const BDDV& fv)
+自分自身の内部データのBDDVオブジェクトfvを与えるconstructor。
+
+BtoI::~BtoI(void)
+destructer。
+
+BtoI& BtoI::operator=(const BtoI& fv)
+fvを自分自身に代入し、それを値として返す。
+
+BtoI BtoI::operator+=(const BtoI& fv)
+自分自身とfvの算術和を自分自身に代入し、それを値として返す。記憶あ
+ふれの場合はnullを返す。自分自身または引数がnullの場合はnullを返す。
+
+BtoI BtoI::operator-=(const BtoI& fv)
+自分自身とfvの算術差を自分自身に代入し、それを値として返す。記憶あ
+ふれの場合はnullを返す。自分自身または引数がnullの場合はnullを返す。
+
+BtoI BtoI::operator*=(const BtoI& fv)
+自分自身とfvの算術積を自分自身に代入し、それを値として返す。記憶あ
+ふれの場合はnullを返す。自分自身または引数がnullの場合はnullを返す。
+
+BtoI BtoI::operator/=(const BtoI& fv)
+自分自身とfvの整数除算の商を自分自身に代入し、それを値として返す。
+記憶あふれの場合はnullを返す。自分自身または引数がnullの場合はnullを返
+す。結果が負で割り切れないときは、絶対値の小さい方に切り捨てる。（例）
+10/(-3)= -3
+
+BtoI BtoI::operator%=(const BtoI& fv)
+自分自身と$v$の整数除算の剰余を自分自身に代入し、それを値として返す。
+記憶あふれの場合はnullを返す。自分自身または引数がnullの場合はnullを返
+す。商が負になる場合でも商の絶対値が小さくなるように剰余を計算する。
+（例）-10 % 3 = -1
+
+BtoI BtoI::operator&=(const BtoI& fv)
+自分自身とfvのビット論理積を自分自身に代入し、それを値として返す。
+記憶あふれの場合はnullを返す。自分自身または引数がnullの場合はnullを返す。
+
+BtoI BtoI::operator|=(const BtoI& fv)
+自分自身とfvのビット論理和を自分自身に代入し、それを値として返す。
+記憶あふれの場合はnullを返す。自分自身または引数がnullの場合はnullを返す。
+
+BtoI BtoI::operator^=(const BtoI& fv)
+自分自身とfvのビット排他論理和を自分自身に代入し、それを値として返す。
+記憶あふれの場合はnullを返す。自分自身または引数がnullの場合はnullを返す。
+
+BtoI BtoI::operator<<=(const BtoI& fv)
+自分自身を、fvが表すビット数だけ算術的に左シフトした結果を自分自身に代入し、
+それを値として返す。fvが負のときは右にシフトする。0のときはシフトしな
+い。記憶あふれの場合はnullを返す。自分自身または引数がnullの場合はnull
+を返す。
+
+BtoI BtoI::operator>>=(const BtoI& fv)
+自分自身を、fvが表すビット数だけ算術的に右シフトした結果を自分自身に代入し、
+それを値として返す。$v$が負のときは左にシフトする。0のときはシフトしな
+い。自分自身が負数のときは、左端のビットには1が入る。記憶あふれの場合は
+nullを返す。自分自身または引数がnullの場合はnullを返す。
+
+BtoI BtoI::operator-(void) const 
+自分自身の補数を表すBtoIオブジェクトを新しく生成し、それを値として返す。
+記憶あふれの場合はnullを返す。自分自身がnullの場合はnullを返す。
+
+BtoI BtoI::operator~(void) const 
+自分自身のビット反転（１の補数）を表すBtoIオブジェクトを新しく生成し、
+それを値として返す。記憶あふれの場合はnullを返す。自分自身がnullの場合
+はnullを返す。
+
+BtoI BtoI::operator!(void) const 
+自分自身の論理否定を表すBtoIオブジェクトを新しく生成し、それを値として
+返す。論理否定は0に対して1を返し、0以外の値に対しては0を返す演算である。
+BtoI_EQ(*this, 0)と等価。記憶あふれの場合はnullを返す。自分自身が
+nullの場合はnullを返す。
+
+BtoI BtoI::operator<<(const BtoI& fv) const 
+自分自身を、fvが表すビット数だけ算術的に左シフトした結果を表すBtoI
+オブジェクトを新しく生成し、それを値として返す。$v$が負のときは右にシフト
+する。0のときはシフトしない。記憶あふれの場合はnullを返す。自分自身
+または引数がnullの場合はnullを返す。
+
+BtoI BtoI::operator>>(const BtoI& fv) const 
+自分自身を、fvが表すビット数だけ算術的に右シフトした結果を表すBtoI
+オブジェクトを新しく生成し、それを値として返す。$v$が負のときは左にシフト
+する。0のときはシフトしない。自分自身が負数のときは、左端のビットには1が
+入る。記憶あふれの場合はnullを返す。自分自身または引数がnullの場合はnull
+を返す。
+
+BtoI BtoI::UpperBound(void) const 
+考えられるすべての入力組合せについて、自分自身が取り得る最大値を表す定
+数関数のBtoIオブジェクトを新しく生成し、それを値として返す。記憶あふれ
+の場合はnullを返す。自分自身がnullの場合はnullを返す。
+
+BtoI BtoI::UpperBound(BDD f) const 
+fで指定した入力変数の部分集合に対するすべての入力組合せについて、自分
+自身が取り得る最大値を表すBtoIオブジェクトを新しく生成し、それを値とし
+て返す。入力変数の部分集合fは、入力変数の論理和の形式で与える。
+記憶あふれの場合はnullを返す。自分自身がnullの場合はnullを返す。
+
+BtoI BtoI::LowerBound(void) const 
+考えられるすべての入力組合せについて、自分自身が取り得る最小値を表す定
+数関数のBtoIオブジェクトを新しく生成し、それを値として返す。記憶あふれ
+の場合はnullを返す。自分自身がnullの場合はnullを返す。
+
+BtoI BtoI::LowerBound(BDD) const 
+fで指定した入力変数の部分集合に対するすべての入力組合せについて、自分
+自身が取り得る最小値を表すBtoIオブジェクトを新しく生成し、それを値とし
+て返す。入力変数の部分集合fは、入力変数の論理和の形式で与える。
+記憶あふれの場合はnullを返す。自分自身がnullの場合はnullを返す。
+
+BtoI BtoI::At0(int var) const 
+自分自身の表す関数において、変数番号varで指定した入力変数に0を代入した
+関数を表すBtoIオブジェクトを新しく生成し、それを値として返す。不当なvarを
+与えた場合はエラー（異常終了）。記憶あふれの場合はnullを返す。自分自身が
+nullの場合はnullを返す。
+
+BtoI BtoI::At1(int) const 
+自分自身の表す関数において、変数番号varで指定した入力変数に1を代入した
+関数を表すBtoIオブジェクトを新しく生成し、それを値として返す。不当なvarを
+与えた場合はエラー（異常終了）。記憶あふれの場合はnullを返す。自分自身が
+nullの場合はnullを返す。
+
+BtoI BtoI::Cofact(BtoI fv) const 
+自分自身の表す関数において、fv = 0のときをdon't careとみなして簡単化した
+関数を表すBtoIオブジェクトを新しく生成し、それを値として返す。記憶あふれの
+場合はnullを返す。自分自身または引数がnullの場合はnullを返す。
+
+int BtoI::Top(void) const 
+自分自身の表す関数に関係する入力変数の中で、最高の順位(level)を持つ
+変数の番号(VarID)を返す。levelの値そのものを返すわけではないので注意。
+定数関数のときは0を返す。nullのときは0を返す。
+
+BDD BtoI::GetSignBDD(void) const 
+自分自身の表す関数の符号ビット（負になるための条件）を表すBDDオブジェ
+クトを新しく生成し、それを値として返す。nullの場合はnullのBDDを返す。
+
+BDD BtoI::GetBDD(int ix) const 
+自分自身の表す関数の第ixビットを表すBDDオブジェクトを新しく生成し、
+それを値として返す。ixは最下位ビットから0, 1, 2, ... となっている。
+負のixを与えた場合はエラー。桁数を超えるixに対しては、最上位（符号）
+ビットのBDDを返す。自分自身がnullの場合はnullのBDDを返す。
+
+BDDV BtoI::GetMetaBDDV(void) const 
+自分自身の内部データのBDDVオブジェクトをコピーして返す。
+
+int BtoI::Len(void) const 
+自分自身の桁数を返す。
+
+int BtoI::GetInt(void) const 
+自分自身の表す関数が定数関数の場合、その整数値を返す。定数関数でない場
+合は、すべての入力変数に0を代入したときの値を出力する。整数値が32ビッ
+トに収まらない場合は、下位32ビットのみを有効とする。nullの場合は0を
+返す。
+
+int BtoI::StrNum10(char* s) const 
+自分自身が表す関数が定数関数の場合、その10進数文字列を生成し、sから
+始まる領域に書き込む。sには事前に十分な領域（最低10バイト）を確保し
+ておかなければならない。定数関数でない場合は、すべての入力変数に0を
+代入したときの値を出力する。関数の値は通常0を返すが、記憶あふれの場
+合や、nullのときは1を返す。このとき文字列には"0"が入る。
+
+int BtoI::StrNum16(char* s) const 
+自分自身が表す関数が定数関数の場合、その16進数文字列を生成し、sから
+始まる領域に書き込む。sには事前に十分な領域（最低8バイト）を確保してお
+かなければならない。定数関数でない場合は、すべての入力変数に0を代入
+したときの値を出力する。関数の値は通常0を返すが、記憶あふれの場合や、
+nullのときは1を返す。このとき文字列には"0"が入る。
+
+bddword BtoI::Size() const 
+自分自身のグラフの節点数を返す。nullの場合は0を返す。
+
+void BtoI::Print(void) const 
+自分自身の内部データ情報を標準出力に出力する。
+
+
+
+
+
+
+
+**************************************************************************
+クラス名: ZBDD  --- ゼロサプレス型BDDで表現された組合せ集合を指すクラス
+**************************************************************************
+ヘッダーファイル名: "ZBDD.h"
+ソースファイル名: ZBDD.cc
+内部から呼び出しているクラス: BDD
+
+ゼロサプレス型BDD 表現を用いて、組合せ集合を抽象化したクラスである。
+集合の各要素は、n個のアイテムの中からk個を選ぶ組合せを表す。アイテムは
+1から始まる整数で識別する。0 個の要素からなる集合を空集合と呼ぶ。また
+n個のリテラルから0個を選ぶ組合せを表す要素を単位元要素と呼び、単位元
+要素1個だけからなる集合を単位元集合と呼ぶ。記憶あふれの場合は処理を中断し、
+null (-1) を返す。
+（使用例）
+ZBDD x = ZBDD(1).Change(1);
+ZBDD y = ZBDD(1).Change(2);
+ZBDD f = x + y;
+ZBDD g = f.Change(3) + f.Change(4);
+f.Print();
+g.Print();
+
+---------------------関連する定数値---------------------
+extern const bddword BDD_MaxNode 
+extern const int BDD_MaxVar 
+
+---------------------関連する外部関数---------------------
+ZBDD operator&(const ZBDD& f, const ZBDD& g)
+f と g の交わり(intersection)を表すZBDDオブジェクトを生成し、それを返す。
+記憶あふれの場合は、null を表すオブジェクトを返す。引数にnullを与えた
+場合にはnullを返す。
+
+ZBDD operator+(const ZBDD& f, const ZBDD& g)
+f と g の結び(union)を表すZBDDオブジェクトを生成し、それを返す。
+記憶あふれの場合は、null を表すオブジェクトを返す。引数にnullを与えた
+場合にはnullを返す。
+
+ZBDD operator-(const ZBDD& f, const ZBDD& g)
+f から g を引いた差分集合を表すZBDDオブジェクトを生成し、それを返す。
+記憶あふれの場合は、null を表すオブジェクトを返す。引数にnullを与えた
+場合にはnullを返す。
+
+ZBDD operator*(const ZBDD& f, const ZBDD& g)
+f と g の直積集合を表すZBDDオブジェクトを生成し、それを返す。記憶
+あふれの場合は、null を表すオブジェクトを返す。引数にnullを与えた
+場合にはnullを返す。
+
+ZBDD operator/(const ZBDD& f, const ZBDD& g)
+f を g で割った集合(Weak-division)を表すZBDDオブジェクトを生成し、
+それを返す。記憶あふれの場合は、null を表すオブジェクトを返す。
+引数にnullを与えた場合にはnullを返す。
+
+ZBDD operator%(const ZBDD& f, const ZBDD& g);
+f を g で割った剰余の集合を表すZBDDオブジェクトを生成し、それを返す。
+記憶あふれの場合は、null を表すオブジェクトを返す。引数にnullを与えた
+場合にはnullを返す。
+
+int operator==(const ZBDD& f, const ZBDD& g)
+f と g が同じ集合かどうかの真偽(1/0)を返す。
+
+int operator!=(const ZBDD& f, const ZBDD& g)
+f と g が異なる集合かどうかの真偽(1/0)を返す。
+
+ZBDD BDD_CacheZBDD(char op, bddword f, bddword g);
+f と g の演算結果が ZBDD 型のとき、演算結果をキャッシュから参照する。op 
+は演算の種類を表す番号で、20 以上の値を入れる。演算結果が登録されて
+いる場合はその ZBDD を返し、見つからなかった場合は、null を表すオブジェ
+クトを返す。f, g が ZBDD 型の演算の場合は、GetID()で bddword 型に変換して
+与える。
+
+ZBDD ZBDD_Import(FILE *strm = stdin)
+strmで指定するファイルからZBDDの構造を読み込み、ZBDDオブジェクトを生成して、それを返す。ただし、ファイルに書かれているデータが多出力であった場合は、最初の出力の構造のみ読み込む。ファイルに文法誤りが合った場合等、異常終了時はnullを返す。
+
+ZBDD ZBDD_Random(int dim, int density = 50)
+次数 dim の乱数集合を表すZBDDオブジェクトを生成し、それを返す。
+変数順位(level)が1からdimまでの値を持つアイテム変数を使用する。
+アイテム変数はあらかじめ宣言されていなければならない。density によって、
+濃度（要素数／全体集合％）を指定することができる。記憶あふれの場合は
+nullを返す。
+
+ZBDD_Meet(const ZBDD& f, const ZBDD& g)
+f と g のMeet演算（Knuth本4巻1分冊141頁: 演習問題203参照）により得られる
+集合を表すZBDDオブジェクトを生成し、それを返す。記憶あふれの場合は、null を
+表すオブジェクトを返す。引数にnullを与えた場合にはnullを返す。
+
+（再掲）
+void BDD_Init(bddword init, bddword limit)
+int BDD_NewVar(void)
+int BDD_NewVarOfLev(int lev)
+int BDD_LevOfVar(int v) 
+int BDD_VarOfLev(int lev)
+int BDD_VarUsed(void)
+int BDD_TopLev(void)
+bddword BDD_Used(void)
+void BDD_GC(void)
+
+---------------------公開クラスメソッド---------------------
+ZBDD::ZBDD(void)
+constructer。初期値として空集合を表すオブジェクトを生成する。
+
+ZBDD::ZBDD(int val)
+定数を表すZBDDオブジェクトを作り出す constructer。v == 0 ならば
+空集合、v > 0 ならば単位元集合、v < 0 ならば null を表すオブジェクトを
+生成する。
+
+ZBDD::ZBDD(const ZBDD& f)
+引数 f を複製する constructer。
+
+ZBDD::~ZBDD(void)
+destructer。
+
+ZBDD& ZBDD::operator=(const ZBDD& f)
+自分自身に f を代入し、そのコピーを返す。
+
+ZBDD ZBDD::operator&=(const ZBDD& f)
+自分自身と f との交わり(intersection)を求め、自分自身に代入し、
+そのコピーを返す。記憶あふれの場合は、null を表すオブジェクトを
+代入する。自分自身または引数が null の場合も null となる。
+
+ZBDD ZBDD::operator+=(const ZBDD& f)
+自分自身と f との結び(union)を求め、自分自身に代入し、そのコピーを
+返す。記憶あふれの場合は、null を表すオブジェクトを代入する。
+自分自身または引数が null の場合も null となる。
+
+ZBDD ZBDD::operator-=(const ZBDD& f)
+自分自身から f を引いた差分集合を求め、自分自身に代入し、そのコピーを
+返す。記憶あふれの場合は、null を表すオブジェクトを代入する。
+自分自身または引数が null の場合も null となる。
+
+ZBDD ZBDD::operator*=(const ZBDD& f)
+自分自身と f との直積集合を求め、自分自身に代入し、そのコピーを返す。
+記憶あふれの場合は、null を表すオブジェクトを代入する。
+自分自身または引数が null の場合も null となる。
+
+ZBDD ZBDD::operator/=(const ZBDD& f)
+自分自身を f で割った集合(Weak division)を求め、自分自身に代入し、
+そのコピーを返す。記憶あふれの場合は、null を表すオブジェクトを代入する。
+自分自身または引数が null の場合も null となる。
+
+ZBDD ZBDD::operator%=(const ZBDD& f)
+自分自身を f で割った余りの集合を求め、自分自身に代入し、そのコピーを返す。
+記憶あふれの場合は、null を表すオブジェクトを代入する。
+自分自身または引数が null の場合も null となる。
+
+ZBDD ZBDD::operator<<=(int s)
+自分自身のグラフに対して、関係する全てのアイテム変数を、展開順位(level)がsずつ
+大きい（上位にある）変数の変数番号(VarID)にそれぞれ書き換えてZBDDを複製した
+組合せ集合を、自分自身に代入する。また演算結果を関数値として返す。
+実行結果において未定義の入力変数が必要になるようなsを与えてはならない。
+必要な入力変数はあらかじめ宣言しておくこと。記憶あふれの場合は、null を表す
+オブジェクトを返す。自分自身が null のときは何もしない。sに負の値を指定する
+ことはできない。
+
+ZBDD ZBDD::operator>>=(int)
+自分自身のグラフに対して、関係する全てのアイテム変数を、展開順位(level)がsずつ
+小さい（下位にある）変数の変数番号(VarID)にそれぞれ書き換えてZBDDを複製した
+組合せ集合を、自分自身に代入する。また演算結果を関数値として返す。
+実行結果において未定義の入力変数が必要になるようなsを与えてはならない。
+必要な入力変数はあらかじめ宣言しておくこと。記憶あふれの場合は、null を表す
+オブジェクトを返す。自分自身が null のときは何もしない。sに負の値を指定する
+ことはできない。
+
+ZBDD ZBDD::operator<<(int) const 
+自分自身のグラフに対して、関係する全てのアイテム変数を、展開順位(level)がsずつ
+大きい（上位にある）変数の変数番号(VarID)にそれぞれ書き換えてZBDDを複製した
+オブジェクトを生成し、それを返す。実行結果において未定義の入力変数が必要に
+なるようなsを与えてはならない。必要な入力変数はあらかじめ宣言しておくこと。
+記憶あふれの場合は、null を表すオブジェクトを返す。自分自身が null のときは
+何もしない。sに負の値を指定することはできない。
+
+ZBDD ZBDD::operator>>(int) const 
+自分自身のグラフに対して、関係する全てのアイテム変数を、展開順位(level)がsずつ
+小さい（下位にある）変数の変数番号(VarID)にそれぞれ書き換えてZBDDを複製した
+オブジェクトを生成し、それを返す。実行結果において未定義の入力変数が必要に
+なるようなsを与えてはならない。必要な入力変数はあらかじめ宣言しておくこと。
+記憶あふれの場合は、null を表すオブジェクトを返す。自分自身が null のときは
+何もしない。sに負の値を指定することはできない。
+
+ZBDD ZBDD::OffSet(int var) const 
+自分自身のグラフに対して、変数番号varのアイテムを含まない組合せからなる
+部分集合を表すZBDDオブジェクトを生成し、それを返す。記憶あふれの場合は、
+nullを表すオブジェクトを返す。自分自身がnullだった場合はnullを返す。
+
+ZBDD ZBDD::OnSet(int var) const 
+自分自身のグラフに対して、変数番号varのアイテムを含む組合せからなる
+部分集合を表すZBDDオブジェクトを生成し、それを返す。記憶あふれの場合は、
+nullを表すオブジェクトを返す。自分自身がnullだった場合はnullを返す。
+
+ZBDD ZBDD::OnSet0(int var) const 
+Onset(var)を実行した後、変数番号varのアイテムを除去した集合を表す
+ZBDDオブジェクトを生成し、それを返す。Onset(var).Change(var)と等価。
+varがグラフの最上位の変数番号の場合は、1-エッジ が指しているサブグラフ
+をそのまま返すことになる。記憶あふれの場合は、null を表すオブジェクトを
+返す。自分自身がnull だった場合は null を返す。
+
+ZBDD ZBDD::Change(int) const 
+自分自身のグラフに対して、変数番号varのアイテムの有無を反転させた集合
+を表すZBDDオブジェクトを生成し、それを返す。記憶あふれの場合は、null を
+表すオブジェクトを返す。自分自身がnull だった場合は null を返す。
+
+ZBDD Swap(int var1, int var2) const 
+自分自身のグラフに対して、変数番号var1とvar2のアイテム変数を
+入れ換えたときの論理関数を表すZBDDオブジェクトを生成し、それを返す。引数は
+levelではなく、変数番号で与えることに注意。記憶あふれの場合は、nullを
+表すオブジェクトを返す。自分自身がnullのときは、nullを返す。
+
+ZBDD ZBDD::Restrict(ZBDD f) const 
+自分自身の組合せ集合の要素となっている組合せの中で、fの中の少なくとも
+１つの組合せを包含しているような組合せだけを抽出し、抽出した組合せ集合を表す
+ZBDDオブジェクトを生成してそれを返す。記憶あふれの場合は、nullを返す。
+自分自身または引数がnullの場合もnullを返す
+
+ZBDD ZBDD::Permit(ZBDD f) const 
+自分自身の組合せ集合の要素となっている組合せの中で、fの中の少なくとも
+１つの組合せに包含されているような組合せだけを抽出し、抽出した組合せ集合を表す
+ZBDDオブジェクトを生成してそれを返す。記憶あふれの場合は、nullを返す。
+自分自身または引数がnullの場合もnullを返す
+
+ZBDD ZBDD::PermitSym(int n) const 
+自分自身の組合せ集合の要素となっている組合せの中で、アイテム個数がn個以下の
+組合せだけを抽出した組合せ集合を表すZBDDオブジェクトを生成してそれを返す。
+記憶あふれの場合は、nullを返す。自分自身または引数がnullの場合もnullを返す
+
+ZBDD ZBDD::Support(void) const 
+自分自身の集合に現れるアイテムを抽出し、それらのアイテム１個ずつを要
+素とする集合を表すオブジェクトを生成し、それを返す。記憶あふれの場合は、
+null を表すオブジェクトを返す。
+
+ZBDD ZBDD::Always(void) const 
+自分自身の集合に属する組合せ全てに共通して現れるアイテムを抽出し、
+それらのアイテム１個ずつを要素とする集合を表すオブジェクトを生成し、
+それを返す。記憶あふれの場合は、null を表すオブジェクトを返す。
+
+int ZBDD::IsPoly(void) const 
+自分自身の集合に組合せが複数個含まれるかどうかの真偽を返す。
+
+int ZBDD::Top(void) const 
+自分自身の組合せ集合に関係するアイテム変数のうち、最上位の順位を持つ
+アイテムの変数番号を返す。null に対しては 0 を返す。
+
+bddword ZBDD::GetID(void) const 
+集合を一意に表現する 1-word の識別番号を返す。
+
+bddword ZBDD::Size(void) const 
+自分自身のグラフの節点数を返す。null に対しては 0 を返す。
+
+bddword ZBDD::Card(void) const 
+自分自身が表す集合の要素数(cardinality)を返す。null に対しては 0 を返す。
+
+bddword ZBDD::Lit(void) const 
+自分自身が表す集合中の総リテラル数（各組合せのアイテム個数の総和）を返す。
+null に対しては 0 を返す。
+
+bddword ZBDD::Len(void) const 
+自分自身が表す集合の中で、最もアイテム数を多く含む組合せを探し出して、
+そのアイテム数を返す。null に対しては 0 を返す。
+
+void ZBDD::Export(FILE *strm = stdout) const 
+ZBDDの内部データ構造を、strmで指定するファイルに出力する。
+
+void ZBDD::PrintPla(void) const 
+自分自身が表す集合を表形式（pla format）で標準出力に出力する。
+
+void ZBDD::XPrint(void) const 
+自分自身のグラフを、X-Window に描画する。
+
+void ZBDD::XPrint0(void) const 
+自分自身のグラフを、X-Window に描画する。（否定エッジなし）
+
+void Print(void) const 
+インデックスの値、最上位のリテラル番号、節点数の情報を標準出力に出力する。
+
+bddword ZBDD::ZLev(int lev, int last = 0) const 
+自分自身のZBDDについて、最上位節点から0-枝を順にたどって行って、アイテム変数のレベルがちょうどlev となっている節点があれば、それを最上位節点とするZBDDオブジェクトをコピーして返す。変数レベルがちょうどlevとなっている節点がなければ、lastがゼロのときは、lev以下となる最初の節点を最上位節点とするZBDDオブジェクトをコピーして返す。lastが非ゼロのときは、lev以上である最後の節点を最上位節点とするZBDDオブジェクトをコピーして返す。nullに対してはnullを返す。なお、ZBDDオブジェクトに対してあらかじめSetZSkip()を1回実行しておくと、補助リンクのおかげでZLevメソッドが高速に行える。
+
+void ZBDD::SetZSkip(void) const 
+自分自身のZBDDについて、0-枝を高速にたどるための補助リンクを張る。それ以外には基本的に変化しない。
+
+bddword ZBDD::Intersec(ZBDD g) const 
+自分自身とgとの共通集合を表すZBDDオブジェクトを生成し、それを返す。どちらかがnullならばnullを返す。あらかじめSetZSkip()を1回実行しておくと、補助リンクのおかげで高速に実行できる。特に、自分自身のZBDDオブジェクトが含むアイテム変数の個数が非常に多く、gに出現するアイテム変数の個数が非常に少ないときに有効である。
+
+
+
+
+**************************************************************************
+クラス名: ZBDDV  --- ZBDDの配列（組合せ集合の配列）を表すクラス
+**************************************************************************
+ヘッダーファイル名: "ZBDD.h"
+ソースファイル名: ZBDD.cc
+内部から呼び出しているクラス: BDD, BDDV, ZBDD
+
+ZBDDV の配列を表すクラス。配列要素の番号は 0 から始まる整数である。
+内部ではBDDVと同様に出力選択変数を用いた二分木で処理している。
+出力選択変数とユーザ変数の取り扱いはBDDVの場合と同様で、BDDV_Init()を
+最初に実行する必要がある。ZBDDVはBDDVと異なり、、あらかじめ配列長を宣言する
+必要はなく、要素にアクセスした瞬間にその要素の分だけのメモリが確保される。
+ZBDDV同士の演算で配列長が一致していない場合、足りない方の要素は0が仮定
+される。未使用の要素を参照した場合も0が返される。
+
+---------------------関連する定数値---------------------
+extern const int BDDV_SysVarTop
+extern const int BDDV_MaxLen
+extern const bddword BDD_MaxNode 
+extern const int BDD_MaxVar 
+
+---------------------関連する外部関数---------------------
+ZBDDV operator&(const ZBDDV& fv, const ZBDDV& gv)
+fvとgvの各配列要素同士の交わり(intersection)を表すZBDDVオブジェクトを
+生成し、それを返す。記憶あふれの場合は 長さ1のnullを返す。自分自身が
+nullの場合には、長さ1のnullを返す。
+
+ZBDDV operator+(const ZBDDV& fv, const ZBDDV& gv)
+fvとgvの各配列要素同士の結び(union)を表すZBDDVオブジェクトを生成し、
+それを返す。記憶あふれの場合は 長さ1のnullを返す。自分自身がnullの
+場合には、長さ1のnullを返す。
+
+ZBDDV operator-(const ZBDDV& fv, const ZBDDV& gv)
+fvの各配列要素 からgvの各配列要素を引いた差分集合を表すZBDDVオブジェクトを
+生成し、それを返す。記憶あふれの場合は 長さ1のnullを返す。自分自身が
+nullの場合には、長さ1のnullを返す。
+
+int operator==(const ZBDDV& fv, const ZBDDV& gv)
+fvとgvの各配列要素が同じ集合かどうかの真偽(1/0)を返す。
+
+int operator!=(const ZBDDV& fv, const ZBDDV& gv)
+fvとgvが各配列要素のうち少なくとも１つが異なる集合かどうかの真偽(1/0)を返す。
+
+ZBDDV ZBDDV_Import(FILE *strm = stdin)
+strmで指定するファイルからZBDDVの構造を読み込み、ZBDDVオブジェクトを生成して、それを返す。ファイルに文法誤りが合った場合等、異常終了時はnullを返す。
+
+（再掲）
+void BDDV_Init(bddword init, bddword limit)
+int BDD_NewVar(void)
+int BDD_NewVarOfLev(int lev)
+int BDD_LevOfVar(int v) 
+int BDD_VarOfLev(int lev)
+int BDD_VarUsed(void)
+int BDD_TopLev(void)
+bddword BDD_Used(void)
+void BDD_GC(void)
+---------------------公開クラスメソッド---------------------
+ZBDDV::ZBDDV(void)
+基本constructer。初期値として空集合を表すZBDDVオブジェクトを生成する。
+
+ZBDDV::ZBDDV(const ZBDDV& fv)
+引数fvを複製するconstructer。
+
+ZBDDV::ZBDDV(const ZBDD& f, int location = 0)
+第location番目の配列要素がfで、それ以外の要素が0となっているZBDDV
+オブジェクトを生成するconstructer。fがnullだった場合は、locationの値に
+関わらず、0番目の要素がnullとなっているオブジェクトを返す。
+
+ZBDDV::~ZBDDV(void)
+destructer。
+
+ZBDDV& ZBDDV::operator=(const ZBDDV& fv)
+自分自身にfvを代入し、fvを返す。
+
+ZBDDV ZBDDV::operator&=(const ZBDDV& fv)
+自分自身とfvとの各配列要素同士の交わり(intersection)を求め、自分自身に
+代入する。記憶あふれの場合は 長さ1のnullを代入する。自分自身または
+引数にnullが含まれていた場合も、長さ1のnullとなる。
+
+ZBDDV ZBDDV::operator+=(const ZBDDV& fv)
+自分自身とfvとの各配列要素同士の結び(union)を求め、自分自身に代入する。
+記憶あふれの場合は 長さ1のnullを代入する。自分自身または引数にnullが
+含まれていた場合には、長さ1のnullをとなる。
+
+ZBDDV ZBDDV::operator-=(const ZBDDV& fv)
+自分自身の各配列要素からfvの各配列要素を引いた差分集合を求め、自分自身
+に代入する。記憶あふれの場合は 長さ1のnullを代入する。自分自身または引
+数にnullが含まれていた場合には、長さ1のnullとなる。
+
+ZBDDV ZBDDV::operator<<=(int s)
+自分自身の各配列要素に対して、関係する全てのアイテム変数を、展開順位
+(level)がsずつ大きい（上位にある）変数の変数番号(VarID)にそれぞれ書き換えて
+ZBDDVを複製した組合せ集合を、自分自身に代入する。また演算結果を関数値として返す。
+実行結果において未定義の入力変数が必要になるようなsを与えてはならない。
+必要な入力変数はあらかじめ宣言しておくこと。記憶あふれの場合は、nullを表す
+オブジェクトを返す。自分自身がnullのときは何もしない。sに負の値を指定する
+ことはできない。
+
+ZBDDV ZBDDV::operator>>=(int s)
+自分自身の各配列要素に対して、関係する全てのアイテム変数を、展開順位
+(level)がsずつ小さい（下位にある）変数の変数番号(VarID)にそれぞれ書き換えて
+ZBDDVを複製した組合せ集合を、自分自身に代入する。また演算結果を関数値として返す。
+実行結果において未定義の入力変数が必要になるようなsを与えてはならない。
+必要な入力変数はあらかじめ宣言しておくこと。記憶あふれの場合は、nullを表す
+オブジェクトを返す。自分自身がnullのときは何もしない。sに負の値を指定する
+ことはできない。
+
+ZBDDV ZBDDV::operator<<(int s) const 
+自分自身の各配列要素に対して、関係する全てのアイテム変数を、展開順位
+(level)がsずつ大きい（上位にある）変数の変数番号(VarID)にそれぞれ書き換えて
+ZBDDVを複製した組合せ集合を生成し、それを返す。実行結果において未定義の入力
+変数が必要になるようなsを与えてはならない。必要な入力変数はあらかじめ宣言
+しておくこと。記憶あふれの場合は、null を表すオブジェクトを返す。自分自身が
+nullのときは何もしない。sに負の値を指定することはできない。
+
+ZBDDV ZBDDV::operator>>(int s) const 
+自分自身の各配列要素に対して、関係する全てのアイテム変数を、展開順位
+(level)がsずつ小さい（下位にある）変数の変数番号(VarID)にそれぞれ書き換えて
+ZBDDVを複製した組合せ集合を生成し、それを返す。実行結果において未定義の入力
+変数が必要になるようなsを与えてはならない。必要な入力変数はあらかじめ宣言
+しておくこと。記憶あふれの場合は、null を表すオブジェクトを返す。自分自身が
+nullのときは何もしない。sに負の値を指定することはできない。
+
+ZBDDV ZBDDV::OffSet(int var) const 
+自分自身の各配列要素について、変数番号varのアイテムを含まない組合せからなる
+部分集合を表すZBDDVオブジェクトを生成し、それを返す。記憶あふれの場合は、
+nullを表すオブジェクトを返す。自分自身がnullだった場合はnullを返す。
+
+ZBDDV ZBDDV::OnSet(int var) const 
+自分自身の各配列要素に対して、変数番号varのアイテムを含む組合せからなる
+部分集合を表すZBDDVオブジェクトを生成し、それを返す。記憶あふれの場合は、
+nullを表すオブジェクトを返す。自分自身がnullだった場合はnullを返す。
+
+ZBDDV ZBDDV::OnSet0(int var) const 
+Onset(var)を実行した後、変数番号varのアイテムを除去した集合のベクトルを
+表すZBDDVオブジェクトを生成し、それを返す。Onset(var).Change(var)と等価。
+varがグラフの最上位の変数番号の場合は、1-エッジ が指しているサブグラフ
+をそのまま返すことになる。記憶あふれの場合は、nullを表すオブジェクトを
+返す。自分自身がnullだった場合はnullを返す。
+
+ZBDDV ZBDDV::Change(int var) const 
+自分自身のグラフに対して、変数番号varのアイテムの有無を反転させた集合
+を表すZBDDVオブジェクトを生成し、それを返す。記憶あふれの場合は、nullを
+表すオブジェクトを返す。自分自身がnullだった場合はnullを返す。
+
+ZBDDV ZBDDV::Swap(int var1, int var2) const 
+自分自身のグラフに対して、変数番号var1とvar2のアイテム変数を
+入れ換えたときの論理関数を表すZBDDVオブジェクトを生成し、それを返す。引数は
+levelではなく、変数番号で与えることに注意。記憶あふれの場合は、nullを
+表すオブジェクトを返す。自分自身がnullのときは、nullを返す。
+
+int ZBDDV::Top(void) const 
+自分自身の配列要素の中で、関係するアイテム変数のうち最上位の順位を持つ
+アイテムの変数番号を返す。nullに対しては0を返す。
+
+ZBDDV ZBDDV::Mask(int start, int length = 1) const 
+自分自身の第 start 番目から 第(start+length)番目までの配列要素を残し、
+その他の配列要素を0（空集合）としたZBDDVオブジェクトを生成し、それを返す。
+記憶あふれの場合は 長さ1のnullを返す。自分自身がnullの場合には、長さ
+1のnullを返す。
+
+ZBDD ZBDDV::GetZBDD(int index) const 
+自分自身の第 index 番目の配列要素のZBDDオブジェクトを生成し、それを返す。
+
+ZBDD ZBDDV::GetMetaZBDD(void) const 
+自分自身の内部構造を表すZBDDオブジェクト（出力選択変数を含む）を返す。
+
+int ZBDDV::Last(void) const 
+自分自身の（意味のある）配列要素の中の、最大の要素番号を返す。nullに対
+しては0を返す
+
+bddword ZBDDV::Size(void) const 
+自分自身のグラフの節点数を返す（出力選択変数に関する節点は含まない）。
+nullに対しては0を返す。
+
+void ZBDDV::Print(void) const 
+インデックスの値、最上位のリテラル番号、ノード数の情報を標準出力に出力する。
+
+void ZBDDV::Export(FILE *strm = stdout) const 
+ZBDDの内部データ構造を、strmで指定するファイルに出力する。
+
+int ZBDDV::PrintPla(void) const 
+自分自身が表す集合を表形式（pla format）で標準出力に出力する。関数の値は、
+通常0を返す。記憶あふれの場合は、出力を中断し1を返す。自分自身がnullの
+場合には、何も出力せず1を返す。
+
+void ZBDDV::XPrint(void) const 
+自分自身のグラフを、X-Window に描画する。
+
+void ZBDDV::XPrint0(void) const
+自分自身のグラフを、X-Window に描画する。（否定エッジなし）
+
+
+
+**************************************************************************
+クラス名: CtoI  ---整数値組合せ集合（整係数ユネイト論理式）を表すクラス
+**************************************************************************
+ヘッダーファイル名: "CtoI.h"
+ソースファイル名: CtoI.cc
+内部から呼び出しているクラス: ZBDD, ZBDDV
+
+整数値組合せ集合を表すクラス。整数値組合せ集合は、複数個のアイテムの有無の
+組合せを要素とする集合であって、なおかつ各要素が整数の値を持つことができる。
+内部データは整数値を符号化し、ZBDDを用いて表現されている。(-2)進数を採用して
+いるため、負数も正数と同様に表現される。整数値の桁数の上限は約100万となっており、
+実質的には青天井である。（ただし桁数が大きくなると処理速度は低下する）。
+記憶あふれの場合は、CtoI_Null()を返す（以下、nullと呼ぶ）。
+
+---------------------関連する定数値---------------------
+extern const int BDDV_SysVarTop
+extern const bddword BDD_MaxNode 
+extern const int BDD_MaxVar 
+
+---------------------関連する外部関数---------------------
+int operator==(const CtoI& a, const CtoI& b)
+２つのCtoIオブジェクトa, bが同じ整数値組合せ集合を表すならば 1、
+そうでなければ 0 を返す。CtoI_EQ() とは意味が違うので注意。
+
+int operator!=(const CtoI& a, const CtoI& b)
+２つのCtoIオブジェクトa, bが同じ整数値論理関数を表すならば 0、
+そうでなければ 1 を返す。CtoI_NE() とは意味が違うので注意。
+
+CtoI operator+(const CtoI& a, const CtoI& b)
+２つのCtoIオブジェクトa, bの算術和（対応する要素同士の整数値の加算）
+を表すCtoIオブジェクトを新しく生成し、それを値として返す。記憶あふれの
+場合はnullを返す。引数にnullが含まれる場合はnullを返す。桁あふれの
+場合はエラー終了する。
+
+CtoI operator-(const CtoI& a, const CtoI& b)
+２つのCtoIオブジェクトa, bの算術差（対応する要素同士の整数値の減算）
+を表すCtoIオブジェクトを新しく生成し、それを値として返す。記憶あふれの
+場合はnullを返す。引数にnullが含まれる場合はnullを返す。桁あふれの
+場合はエラー終了する。
+
+CtoI operator*(const CtoI& a, const CtoI& b)
+２つのCtoIオブジェクトa, bの算術積を表すCtoIオブジェクトを新しく生成
+し、それを値として返す。記憶あふれの場合はnullを返す。引数にnullが含ま
+れる場合はnullを返す。桁あふれの場合はエラー終了する。この算術積演算は、
+aの要素とbの要素を１つずつ取り出してできる全ての組合せについて乗算を行い、
+それらの総和を求めるものである。同じアイテム変数を２乗してもべき乗には
+ならないこと（v × v = v）を除けば、整数係数の多項式の乗算とほぼ同様の演算で
+ある。例えば、(x + 2 y)(x + 3 y) = x + 6 y + 5 x y となる。
+
+CtoI operator/(const CtoI& a, const CtoI& b)
+２つのCtoIオブジェクトa, bの整数除算の商を表すCtoIオブジェクトを新し
+く生成し、それを値として返す。記憶あふれの場合はnullを返す。引数にnull
+が含まれる場合はnullを返す。結果が負で割り切れないときは、絶対値の小さ
+い方に切り捨てる（例：10/(-3)= -3 ）。除数 b が多項式（複数の組合せ要素を持つ
+集合）の場合は、bの中から要素を１つずつ取り出して除算を行ったときに、bのどの
+要素で割っても商に必ず含まれる組合せ要素の集合を、b全体で割ったときの商と
+定義する。このとき、各組合せ要素の整数値は、部分商に出現する組合せ要素の
+整数値の中で絶対値が最小であるものを全体の商の整数値とする。
+例えば、(20 x + 12 x y + 10 y + 8) / (3 x + 2) の場合、
+(20 x + 12 x y + 10 y + 8)/(3 x) = 6 + 4 y, 
+(20 x + 12 x y + 10 y + 8)/2 = 10 x + 6 x y + 5 y + 4
+なので、全体の商は 4 y + 4 となる。
+
+CtoI operator%(const CtoI& a, const CtoI& b)
+２つのCtoIオブジェクトa, bの整数除算の剰余を表すCtoIオブジェクトを新しく
+生成し、それを値として返す。記憶あふれの場合はnullを返す。引数にnullが含ま
+れる場合はnullを返す。負数やアイテム変数が含まれている場合でも、
+(a % b) = a - ( b * (a / b) )  を満たすように計算する。（例）-10 % 3 = -1。
+
+CtoI CtoI_Null(void)
+エラーや記憶あふれを表すCtoIオブジェクト(null)を生成し、それを値として返す。
+実際の内容はZBDD(-1)である。
+
+CtoI CtoI_ITE(CtoI a, CtoI b, CtoI c)
+if-then-elseの演算。すなわち、aに含まれる組合せ要素に対してはbのデータを複製し、
+aに含まれない組合せ要素に対しては、cのデータを複製したようなCtoIオブジェクトを
+新しく生成し、それを返す。記憶あふれの場合はnullを返す。引数にnullが含まれる場合はnullを返す。aに関しては、0以外の整数値は全て1と同じ意味を持つ。
+
+CtoI CtoI_EQ(CtoI a, CtoI b)
+aとbの少なくとも一方で0以外の整数値を持つ組合せ要素について、aとbで整数値が
+等しい組合せ要素だけを取り出した集合を表すCtoIオブジェクトを新しく生成し、
+それを返す。演算結果は比較条件の成否を表すブール組合せ集合（整数値は1または0）
+となる。operator == とは意味が違うので注意。記憶あふれの場合はnullを返す。引数に
+nullが含まれる場合はnullを返す。
+
+CtoI CtoI_NE(CtoI a, CtoI b)
+aとbの少なくとも一方で0以外の整数値を持つ組合せ要素について、aとbで整数値が
+等しくない組合せ要素だけを取り出した集合を表すCtoIオブジェクトを新しく生成し、
+それを返す。演算結果は比較条件の成否を表すブール組合せ集合（整数値は1または0）
+となる。operator != とは意味が違うので注意。記憶あふれの場合はnullを返す。引数に
+nullが含まれる場合はnullを返す。
+
+CtoI CtoI_GT(CtoI a, CtoI b)
+aとbの少なくとも一方で0以外の整数値を持つ組合せ要素について、aの値がbよりも
+大きい組合せ要素だけを取り出した集合を表すCtoIオブジェクトを新しく生成し、
+それを返す。演算結果は比較条件の成否を表すブール組合せ集合（整数値は1または0）
+となる。記憶あふれの場合はnullを返す。引数にnullが含まれる場合はnullを返す。
+
+CtoI CtoI_GE(CtoI a, CtoI b)
+aとbの少なくとも一方で0以外の整数値を持つ組合せ要素について、aの値がbよりも
+小さくない組合せ要素だけを取り出した集合を表すCtoIオブジェクトを新しく生成し、
+それを返す。演算結果は比較条件の成否を表すブール組合せ集合（整数値は1または0）
+となる。記憶あふれの場合はnullを返す。引数にnullが含まれる場合はnullを返す。
+
+CtoI CtoI_LT(CtoI a, CtoI b)
+aとbの少なくとも一方で0以外の整数値を持つ組合せ要素について、aの値がbよりも
+小さい組合せ要素だけを取り出した集合を表すCtoIオブジェクトを新しく生成し、
+それを返す。演算結果は比較条件の成否を表すブール組合せ集合（整数値は1または0）
+となる。記憶あふれの場合はnullを返す。引数にnullが含まれる場合はnullを返す。
+
+CtoI CtoI_LE(CtoI a, CtoI b)
+aとbの少なくとも一方で0以外の整数値を持つ組合せ要素について、aの値がbよりも
+大きくない組合せ要素だけを取り出した集合を表すCtoIオブジェクトを新しく生成し、
+それを返す。演算結果は比較条件の成否を表すブール組合せ集合（整数値は1または0）
+となる。記憶あふれの場合はnullを返す。引数にnullが含まれる場合はnullを返す。
+
+CtoI CtoI_Max(CtoI a, CtoI b)
+aとbの少なくとも一方で0以外の整数値を持つ組合せ要素について、aの値とbの値の
+大きい方を選ぶ組合せ集合のCtoIオブジェクトを新しく生成し、それを返す。
+正負の符号が異なる場合は正の数値が選ばれる。負数同士であれば絶対値の小さい方が
+選ばれる。記憶あふれの場合はnullを返す。引数にnullが含まれる場合はnullを返す。
+
+CtoI CtoI_Min(CtoI a, CtoI b)
+aとbの少なくとも一方で0以外の整数値を持つ組合せ要素について、aの値とbの値の
+小さい方を選ぶ組合せ集合のCtoIオブジェクトを新しく生成し、それを返す。
+正負の符号が異なる場合は負の数値が選ばれる。負数同士であれば絶対値の大きい方が
+選ばれる。記憶あふれの場合はnullを返す。引数にnullが含まれる場合はnullを返す。
+
+CtoI CtoI_atoi(char* s)
+sの指す数字文字列を数値に変換し、定数項のみを持つCtoIオブジェクトを新しく
+生成し、それを値として返す。通常は10進数として変換するが、文字列の先頭
+が ``0X''または ``0x''で始まる場合には16進数、 ``0B'' または ``0b''
+で始まる場合は２進数で変換する。それ以外の不適当な文字を含む文字列に対
+する動作は保証しない。桁数は約100万ビットまで事実上無制限に処理できる。
+
+CtoI CtoI_Intsec(CtoI a, CtoI b)
+２つのCtoIオブジェクトa, bに関して、(-2)進数の各ビットごとの集合積(intersection)
+を表すCtoIオブジェクトを新しく生成し、それを値として返す。記憶あふれの場合はnull
+を返す。引数にnullが含まれる場合はnullを返す。
+
+CtoI CtoI_Union(CtoI a, CtoI b)
+２つのCtoIオブジェクトa, bに関して、(-2)進数の各ビットごとの集合和(union)
+を表すCtoIオブジェクトを新しく生成し、それを値として返す。記憶あふれの場合はnull
+を返す。引数にnullが含まれる場合はnullを返す。
+
+CtoI CtoI_Diff(CtoI a, CtoI b)
+２つのCtoIオブジェクトa, bに関して、(-2)進数の各ビットごとの集合差(Difference)
+を表すCtoIオブジェクトを新しく生成し、それを値として返す。記憶あふれの場合はnull
+を返す。引数にnullが含まれる場合はnullを返す。
+
+CtoI_Meet(CtoI a, CtoI b)
+a と b のMeet演算（Knuth本4巻1分冊141頁: 演習問題203参照。ただし、整数値の
+重みつき集合に拡張）により得られる集合を表すCtoIオブジェクトを生成し、それを返す
+記憶あふれの場合は、null を表すオブジェクトを返す。引数にnullを与えた場合にはnull
+を返す。このMeet演算は、aの要素とbの要素を１つずつ取り出してできる全ての組合せ
+について共通のアイテム組合せを取り出し、それらの総和を求めるものである。これは、
+整数係数の多項式の乗算を行った結果の式から、1次の変数を消去して、2次の変数を
+1次に書き換えて残したものと考えてよい。例えば、Meet(x + 2 x y + 3 y, x + y + 1) = 
+x + 1 + 1 + 2 x + 2 y + 2 + 3 + 3 y + 3 = 3 x + 5 y + 10となる。
+
+CtoI CtoI_LcmA(char *fname1, char *fname2, int th)
+fname1で指定する名前のファイルからFIMIベンチマークフォーマットのトランザクションデータベースを読み込み、LCMアルゴリズムを用いて、閾値 th 回以上出現する頻出アイテム集合を表す CtoIオブジェクトを生成し、それを返す。fname2にNULL以外が指定された場合は、変数順序ファイルを読み込んで、その順序でLCMを実行する。記憶あふれの場合は null を返す。ファイル読み込みに失敗した場合はエラーメッセージを出力する。
+
+CtoI CtoI_LcmC(char *fname1, char *fname2, int th)
+fname1で指定する名前のファイルからFIMIベンチマークフォーマットのトランザクションデータベースを読み込み、LCMアルゴリズムを用いて、閾値 th 回以上出現する飽和頻出アイテム集合を表す CtoIオブジェクトを生成し、それを返す。fname2にNULL以外が指定された場合は、変数順序ファイルを読み込んで、その順序でLCMを実行する。記憶あふれの場合は null を返す。ファイル読み込みに失敗した場合はエラーメッセージを出力する。
+
+CtoI CtoI_LcmM(char *fname1, char *fname2, int th)
+fname1で指定する名前のファイルからFIMIベンチマークフォーマットのトランザクションデータベースを読み込み、LCMアルゴリズムを用いて、閾値 th 回以上出現する極大頻出アイテム集合を表す CtoIオブジェクトを生成し、それを返す。fname2にNULL以外が指定された場合は、変数順序ファイルを読み込んで、その順序でLCMを実行する。記憶あふれの場合は null を返す。ファイル読み込みに失敗した場合はエラーメッセージを出力する。
+
+CtoI CtoI_LcmAV(char *fname1, char *fname2, int th)
+CtoI_LcmAとほとんど同じだが、それぞれのアイテム組合せの出現回数を保持したCtoIオブジェクトを生成し、それを返す。
+ CtoI CtoI_LcmCV(char *fname1, char *fname2, int th)
+CtoI_LcmCとほとんど同じだが、それぞれのアイテム組合せの出現回数を保持したCtoIオブジェクトを生成し、それを返す。
+
+CtoI CtoI_LcmMV(char *fname1, char *fname2, int th)
+CtoI_LcmMとほとんど同じだが、それぞれのアイテム組合せの出現回数を保持したCtoIオブジェクトを生成し、それを返す。
+
+
+（再掲）
+void BDDV_Init(bddword init, bddword limit)
+int BDD_NewVar(void)
+int BDD_NewVarOfLev(int lev)
+int BDD_LevOfVar(int v) 
+int BDD_VarOfLev(int lev)
+int BDD_VarUsed(void)
+int BDD_TopLev(void)
+bddword BDD_Used(void)
+void BDD_GC(void)
+
+---------------------公開クラスメソッド---------------------
+CtoI::CtoI(void)
+基本constructer。初期値として空集合（全ての要素の値が0）を表す
+オブジェクトを生成する。
+
+CtoI::CtoI(const CtoI& a)
+CtoIオブジェクトのコピーを生成するconstructer。
+
+CtoI::CtoI(const ZBDD& f)
+自分自身の内部データのZBDDオブジェクトfを与えるconstructor。
+
+CtoI::CtoI(int n)
+値nの定数項（アイテム変数に依存しない組合せ）のみからなる組合せ集合を表す
+CtoIオブジェクトを生成するconstructer。
+
+CtoI::~CtoI(void)
+destructer。
+
+CtoI& CtoI::operator=(const CtoI& a)
+aを自分自身に代入し、それを値として返す。
+
+int CtoI::Top(void) const 
+自分自身の組合せ集合に関する変数の中で、最高の順位(level)を持つ
+変数の番号(VarID)を返す。levelの値そのものを返すわけでは
+ないので注意。変数に依存しない（0または定数1）のときは0を返す。
+nullのときは0を返す。CtoIクラスでは整数値を表すために特殊な変数を
+使用しており、その変数番号は1〜BDDV_SysVarTop（=通常20）までの範囲と
+なっている。
+
+int CtoI::TopItem(void) const 
+自分自身の組合せ集合に関する変数の中で、整数値を表すための特殊
+変数を除いて最高の順位(level)を持つアイテム変数の番号(VarID)を返す。
+levelの値そのものを返すわけではないので注意。整数値の定数項のみを含む
+組み合わせ集合に対しては0を返す。nullのときは0を返す。
+
+int CtoI::TopDigit(void) const 
+自分自身が保持している整数値について、(-2)進数で表現したときの最上位桁の
+桁番号（桁数-1）を返す。空集合に対しては0を返す。nullのときは0を返す。
+
+int IsBool(void) const 
+自分自身がブール集合（整数値が0または1）であるかどうかの真偽(1/0)を返す。
+自分自身がnullだった場合は1を返す。
+
+int IsConst(void) const 
+自分自身が定数項（アイテム変数に依存しない項）のみからなるかどうかの
+真偽(1/0)を返す。自分自身がnullだった場合は1を返す。
+
+CtoI CtoI::AffixVar(int var) const 
+自分自身が表す組合せ集合に対して、変数番号varのアイテム変数を各要素に付加
+したときの組合せ集合を表すCtoIオブジェクトを新しく生成し、それを返す。
+変数vを元々含んでいた組合せ要素については、この演算による変化はない。
+CtoIクラスでは整数値を表すために特殊な変数を使用しており、その変数番号
+は1〜BDDV_SysVarTop（=通常20）までの範囲となっている。AffixVar演算では、
+特殊変数でもアイテム変数と同様に処理される。
+
+CtoI CtoI::Factor0(int var) const 
+自分自身を、変数番号varの変数で割ったときの剰余を返す。すなわち変数varを
+含まない組合せ要素をすべて取りだしたCtoIオブジェクトを生成し、それを返す。
+記憶あふれの場合や自分自身がnullのときにはnullを返す。CtoIクラスでは
+整数値を表すために特殊な変数を使用しており、その変数番号は1〜BDDV_SysVarTop
+（=通常20）までの範囲となっている。Factor0演算では、特殊変数でもアイテム変数
+と同様に処理される。
+
+CtoI CtoI::Factor1(int var) const 
+自分自身を、変数番号varの変数で割ったときの商を返す。すなわち変数varを
+含む組合せ要素をすべて取りだし、その各要素から該当変数を取り除いたCtoI
+オブジェクトを生成し、それを返す。記憶あふれの場合や自分自身がnullのときには
+nullを返す。CtoIクラスでは整数値を表すために特殊な変数を使用しており、
+その変数番号は1〜BDDV_SysVarTop（=通常20）までの範囲となっている。
+Factor1演算では、特殊変数でもアイテム変数と同様に処理される。
+
+CtoI CtoI::FilterThen(CtoI a) const 
+自分自身のデータのうち、aに含まれる組合せ要素に関するものだけを抽出複製した
+CtoIオブジェクトを新しく生成し、それを返す。記憶あふれの場合はnullを返す。
+引数や自分自身がnullの場合はnullを返す。条件を表す組合せ集合aに関しては、
+0以外の整数値は全て1と同じ意味を持つ。
+
+CtoI CtoI::FilterElse(CtoI a) const 
+自分自身のデータのうち、aに含まれない組合せ要素に関するものだけを抽出複製した
+CtoIオブジェクトを新しく生成し、それを返す。記憶あふれの場合はnullを返す。
+引数や自分自身がnullの場合はnullを返す。条件を表す組合せ集合aに関しては、
+0以外の整数値は全て1と同じ意味を持つ。
+
+CtoI CtoI::FilterRestrict(CtoI a) const 
+自分自身のデータのうち、aの組合せ要素の中の少なくとも１つを包含するような組合せ
+だけを抽出複製したCtoIオブジェクトを新しく生成し、それを返す。記憶あふれの
+場合はnullを返す。引数や自分自身がnullの場合はnullを返す。条件を表す組合せ
+集合aに関しては、0以外の整数値は全て1と同じ意味を持つ。
+
+CtoI CtoI::FilterPermit(CtoI a) const 
+自分自身のデータのうち、aの組合せ要素の中の少なくとも１つに包含されるような
+組合せだけを抽出複製したCtoIオブジェクトを新しく生成し、それを返す。記憶
+あふれの場合はnullを返す。引数や自分自身がnullの場合はnullを返す。条件を
+表す組合せ集合aに関しては、0以外の整数値は全て1と同じ意味を持つ。
+
+CtoI CtoI::FilterPermitSym(int n) const 
+自分自身のデータのうち、アイテム個数がn個以下の組合せだけを抽出複製した
+CtoIオブジェクトを新しく生成し、それを返す。記憶あふれの場合はnullを返す。
+引数や自分自身がnullの場合はnullを返す。条件を表す組合せ集合aに関しては、
+0以外の整数値は全て1と同じ意味を持つ。
+
+CtoI CtoI::Support(void) const 
+自分自身の集合に現れるアイテムを抽出し、それらのアイテム１個ずつを要
+素とする集合を表すCtoIオブジェクトを生成し、それを返す。記憶あふれの
+場合は、null を表すオブジェクトを返す。
+
+CtoI CtoI::NonZero(void) const 
+自分自身に含まれる組合せ要素をすべて抽出したCtoIオブジェクトを新しく生成し、
+それを返す。0以外の整数値を持つ組合せ要素を全て1に正規化しブール組合せ
+集合を生成する働きを持つ。記憶あふれの場合はnullを返す。
+
+CtoI CtoI::Digit(int d) const 
+自分自身の第d桁目の組合せ集合を表すCtoIオブジェクトを新しく生成し、
+それを返す。演算結果はブール組合せ集合（整数値は0または1）となる。
+自分自身がnullの場合はnullを返す。dが負の場合はエラー終了する。
+記憶あふれの場合はnullを返す。
+
+CtoI CtoI::EQ_Const(CtoI a) const 
+自分自身の各組合せ要素とaの定数項（アイテム変数に依存しない要素）を比較し、
+その整数値が等しい組合せのみを抽出したCtoIオブジェクトを新しく生成し、
+それを返す。演算結果は比較条件の成否を表すブール組合せ集合（整数値は1または0）
+となる。記憶あふれの場合はnullを返す。引数や自分自身がnullの場合はnullを返す。
+
+CtoI CtoI::NE_Const(CtoI a) const 
+自分自身の各組合せ要素とaの定数項（アイテム変数に依存しない要素）を比較し、
+その整数値が等しくない組合せのみを抽出したCtoIオブジェクトを新しく生成し、
+それを返す。演算結果は比較条件の成否を表すブール組合せ集合（整数値は1または0）
+となる。記憶あふれの場合はnullを返す。引数や自分自身がnullの場合はnullを返す。
+
+CtoI CtoI::GT_Const(CtoI a) const 
+自分自身の各組合せ要素とaの定数項（アイテム変数に依存しない要素）を比較し、
+整数値がaの定数値より大きい組合せのみを抽出したCtoIオブジェクトを新しく生成し、
+それを返す。演算結果は比較条件の成否を表すブール組合せ集合（整数値は1または0）
+となる。記憶あふれの場合はnullを返す。引数や自分自身がnullの場合はnullを返す。
+
+CtoI CtoI::GE_Const(CtoI a) const 
+自分自身の各組合せ要素とaの定数項（アイテム変数に依存しない要素）を比較し、
+整数値がaの定数値より小さくない組合せのみを抽出したCtoIオブジェクトを新しく
+生成し、それを返す。演算結果は比較条件の成否を表すブール組合せ集合（整数値は1
+または0）となる。記憶あふれの場合はnullを返す。引数や自分自身がnullの場合は
+nullを返す。
+
+CtoI CtoI::LT_Const(CtoI a) const 
+自分自身の各組合せ要素とaの定数項（アイテム変数に依存しない要素）を比較し、
+整数値がaの定数値より小さい組合せのみを抽出したCtoIオブジェクトを新しく生成し、
+それを返す。演算結果は比較条件の成否を表すブール組合せ集合（整数値は1または0）
+となる。記憶あふれの場合はnullを返す。引数や自分自身がnullの場合はnullを返す。
+
+CtoI CtoI::LE_Const(CtoI a) const 
+自分自身の各組合せ要素とaの定数項（アイテム変数に依存しない要素）を比較し、
+整数値がaの定数値より大きくない組合せのみを抽出したCtoIオブジェクトを新しく
+生成し、それを返す。演算結果は比較条件の成否を表すブール組合せ集合（整数値は1
+または0）となる。記憶あふれの場合はnullを返す。引数や自分自身がnullの場合は
+nullを返す。
+
+CtoI CtoI::MaxVal(void) const 
+自分自身が含む組合せ要素の中で最大の整数値を表す、定数項のCtoIオブジェクトを
+新しく生成し、それを値として返す。記憶あふれの場合はnullを返す。
+自分自身がnullの場合はnullを返す。
+
+CtoI CtoI::MinVal(void) const 
+自分自身が含む組合せ要素の中で最小の整数値を表す、定数項のCtoIオブジェクトを
+新しく生成し、それを値として返す。記憶あふれの場合はnullを返す。
+自分自身がnullの場合はnullを返す。
+
+CtoI CtoI::TotalVal(void) const 
+自分自身の各組合せ要素の整数値の総和を表す、定数項のCtoIオブジェクトを
+新しく生成し、それを値として返す。記憶あふれの場合はnullを返す。
+自分自身がnullの場合はnullを返す。
+
+ZBDD CtoI::GetZBDD(void) const 
+自分自身の内部データのZBDDオブジェクトを複製して、それを返す。
+
+CtoI CtoI::CountTerms(void) const 
+自分自身が含む組合せ要素の総数を表す、定数項のCtoIオブジェクトを新しく生成し、
+それを値として返す。記憶あふれの場合はnullを返す。自分自身がnullの場合は
+nullを返す。
+
+CtoI CtoI::Abs(void) const 
+自分自身の組合せ集合の整数値を絶対値に書き換えたCtoIオブジェクトを新しく
+生成し、それを返す。記憶あふれの場合はnullを返す。自分自身がnullの場合は
+nullを返す。
+
+CtoI CtoI::Sign(void) const 
+自分自身の組合せ集合の各要素の符号を調べ、正なら1, 負なら-1の整数値に書き換えた
+CtoIオブジェクトを新しく生成し、それを返す。記憶あふれの場合はnullを返す。
+自分自身がnullの場合はnullを返す。
+
+CtoI CtoI::operator -(void) const 
+自分自身の組合せ集合の整数値の正負を反転させたCtoIオブジェクトを新しく生成し、
+それを返す。記憶あふれの場合はnullを返す。自分自身がnullの場合はnullを返す。
+
+CtoI CtoI::TimesSysVar(int var) const 
+自分自身に変数番号varの特殊変数を掛け算して得られるCtoIオブジェクトを新しく
+生成し、それを返す。記憶あふれの場合はnullを返す。自分自身がnullの場合は
+nullを返す。CtoIクラスでは整数値を表すために特殊な変数を使用しており、
+その変数番号は1〜BDDV_SysVarTop（=通常20）までの範囲となっている。範囲外の
+varを与えた場合はエラー終了する。本演算は(-2)の2のべき乗を掛け算するという
+意味を持つ。
+
+CtoI CtoI::DivBySysVar(int var) const 
+自分自身を変数番号varの特殊変数で割り算して得られるCtoIオブジェクトを新しく
+生成し、それを返す。記憶あふれの場合はnullを返す。自分自身がnullの場合は
+nullを返す。CtoIクラスでは整数値を表すために特殊な変数を使用しており、
+その変数番号は1〜BDDV_SysVarTop（=通常20）までの範囲となっている。範囲外の
+varを与えた場合はエラー終了する。本演算は(-2)の2のべき乗で割り算するという
+意味を持つ。
+
+CtoI CtoI::ShiftDigit(int power) const 
+自分自身に含まれる各組合せ要素の整数値を、桁数powerだけシフトさせて得られる
+CtoIオブジェクトを新しく生成し、それを返す。記憶あふれの場合はnullを返す。
+自分自身がnullの場合はnullを返す。powerが正の場合は左シフト（-2のべき乗倍）、
+負の場合は右シフト（-2のべき乗での割り算）、0の場合は変化なし。
+
+CtoI CtoI::operator+=(const CtoI& a)
+自分自身とaの算術和を自分自身に代入し、それを値として返す。記憶あ
+ふれの場合はnullを返す。自分自身または引数がnullの場合はnullを返す。
+算術和の詳細はoperator+を参照。
+
+CtoI CtoI::operator-=(const CtoI& a)
+自分自身とaの算術差を自分自身に代入し、それを値として返す。記憶あ
+ふれの場合はnullを返す。自分自身または引数がnullの場合はnullを返す。
+算術差の詳細はoperator-を参照。
+
+CtoI CtoI::operator*=(const CtoI& a)
+自分自身とaの算術積を自分自身に代入し、それを値として返す。記憶あ
+ふれの場合はnullを返す。自分自身または引数がnullの場合はnullを返す。
+算術積の詳細はoperator*を参照。
+
+CtoI CtoI::operator/=(const CtoI& a)
+自分自身とaの整数除算の商を自分自身に代入し、それを値として返す。
+記憶あふれの場合はnullを返す。自分自身または引数がnullの場合はnullを返
+す。整数除算の詳細はoperator/を参照。
+
+CtoI CtoI::operator%=(const CtoI& a)
+自分自身とaの整数除算の剰余を自分自身に代入し、それを値として返す。
+記憶あふれの場合はnullを返す。自分自身または引数がnullの場合はnullを返
+す。整数除算の詳細はoperator/, operator%を参照。
+
+bddword CtoI::Size()const 
+自分自身のグラフの節点数を返す。nullの場合は0を返す。
+
+int CtoI::GetInt(void) const 
+自分自身の定数項（アイテム変数に依存しない要素）の値を返す。整数値が
+32ビットに収まらない場合は、下位32ビットのみを有効とする。nullの
+場合は0を返す。
+
+int CtoI::StrNum10(char* s) const 
+自分自身の定数項（アイテム変数に依存しない要素）の値を表す10進数文字列を
+生成し、sから始まる領域に書き込む。sには事前に十分な領域（最低10バイト）
+を確保しておかなければならない。関数の値は通常0を返すが、記憶あふれの場
+合や、nullのときは1を返す。このとき文字列には"0"が入る。
+
+int CtoI::StrNum16(char* s) const 
+自分自身の定数項（アイテム変数に依存しない要素）の値を表す16進数文字列を
+生成し、sから始まる領域に書き込む。sには事前に十分な領域（最低10バイト）
+を確保しておかなければならない。関数の値は通常0を返すが、記憶あふれの場
+合や、nullのときは1を返す。このとき文字列には"0"が入る。
+
+void CtoI::PutForm(void) const 
+自分自身を数式形式のテキスト列で表現し、標準出力に出力する。
+
+void CtoI::Print(void) const 
+自分自身の内部データ情報を標準出力に出力する。
+
+void CtoI::XPrint(void) const 
+自分自身の内部データ情報をX-Windowに描画する。
+
+void CtoI::XPrint0(void) const 
+自分自身の内部データ情報をX-Windowに描画する。（否定枝を使わない状態で表示する。）
+
+
+
+
+
+
+
+**************************************************************************
+クラス名: SOP  ---正負のリテラルからなる積和形論理式を表現するクラス
+**************************************************************************
+ヘッダーファイル名: "SOP.h"
+ソースファイル名: SOP.cc
+内部から呼び出しているクラス: BDD, ZBDD
+
+ZBDD を用いて、積和形論理式を表したクラスである。積和形論理式は積項の
+和集合であり、積項はリテラルの積集合である。リテラルはそれぞれの入力
+変数について、正リテラルと負リテラルの２種類を使用する。１つの積項に、
+同じ入力変数の正負両方のリテラルが同時に含まれることはない。SOP_NewVar()を
+用いて変数を宣言することにより、正リテラルの変数番号(VarID)は(2 k)番, 
+負リテラル(2 k - 1)番が割り当てられる。BDDとSOPを同時に対応させて使う場合は、
+BDDの入力変数はSOPの正リテラルの変数番号(VarID)を使用する。
+
+（使用例）
+int var1 = SOP_NewVar();
+int var2 = SOP_NewVar();
+int var3 = SOP_NewVar();
+int var4 = SOP_NewVar();
+SOP f1 = SOP(1).And1(var1);
+SOP f2 = SOP(1).And0(var2);
+SOP f3 = f1 + f2;
+SOP f4 = f.And1(var3) + f.And0(var4);
+f3.Print();
+f4.Print();
+
+---------------------関連する定数値---------------------
+extern const bddword BDD_MaxNode 
+extern const int BDD_MaxVar 
+
+---------------------関連する外部関数---------------------
+int SOP_NewVar(void)
+新しいリテラル（正負１組）を生成し、正リテラルの変数番号(通称VarID)を返す。
+負リテラルのVarIDは正リテラルよりも1小さい数値となる。VarIDは1から
+始まる整数で、SOP_NewVar()またはSOP_NewVarOfLev()を1回実行するごとに
+2ずつ大きな値が返る。生成したリテラルのZBDD展開順位(通称level)は、VarIDと
+同じ値となる。リテラルの個数が最大値BDD_MaxVarを超えるとエラーを出力して
+異常終了する。なお、最初にBDDV_Init()で初期化した場合（SOPVクラスを扱う場合
+には、最初にシステム用に変数が使われるので、VarIDは (BDDV_SysVarTop + 1)から
+開始し、順に1ずつ大きな値となる。
+
+
+int SOP_NewVarOfLev(int lev)
+新しいリテラル（正負１組）を生成し、正リテラルの変数番号(通称VarID)を返す。
+負リテラルのVarIDは正リテラルよりも1小さい数値となる。VarIDは1から
+始まる整数で、SOP_NewVar()またはSOP_NewVarOfLev()を1回実行するごとに
+2ずつ大きな値が返る。生成するリテラルのBDD展開順位(通称level)は、
+引数levで指定した値となる。実行時に順位levのリテラルがすでに存在していた
+場合は、lev以上の変数を2つずつ上にずらして（levelを2ずつ増加させて）、空いた
+ところに新しいリテラルを挿入する。引数levは2以上かつ「関数実行直前のリテラルの
+個数+2」以下の偶数でなければならない。そうでなければエラーを出力して異常終了する。
+
+SOP operator&(const SOP& f, const SOP& g)
+f と g の交わり(intersection)を表すSOPオブジェクトを生成し、それを返す。
+記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+SOP operator+(const SOP& f, const SOP& g)
+f と g の結び(union)を表すSOPオブジェクトを生成し、それを返す。
+記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+SOP operator-(const SOP& f, const SOP& g)
+f から g を引いた差分集合を表すSOPオブジェクトを生成し、それを返す。
+記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+int operator==(const SOP& f, const SOP& g)
+f と g が同じ集合かどうかの真偽(1/0)を返す。
+
+int operator!=(const SOP& f, const SOP& g)
+f と g が異なる集合かどうかの真偽(1/0)を返す。
+
+SOP operator*(const SOP& f, const SOP& g)
+f と g の直積（算術乗算）を表すSOPオブジェクトを生成し、それを返す。
+記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+SOP operator/(const SOP& f, const SOP& g)
+f を g で割った商（Weak division）を表すSOPオブジェクトを生成し、
+それを返す。記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+SOP operator%(const SOP& f, const SOP& g)
+f を g で割った余り（Weak divisionの剰余）を表すSOPオブジェクトを生成し、
+それを返す。記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+SOP SOP_ISOP(BDD f)
+BDDで与えられた論理関数fに対して、その非冗長積和形を表すSOPオブジェクトを
+生成し、それを返す。記憶あふれの場合や引数にnullが含まれているときにはnull
+を返す。
+
+SOP SOP_ISOP(BDD on, BDD dc)
+オンセット on、ドントケアセット dc の組によって表される論理関数に対して、
+その非冗長積和形を表すSOPオブジェクトを生成し、それを返す。記憶あふれの
+場合や引数にnullが含まれているときにはnullを返す。
+
+（再掲）
+void BDD_Init(bddword init, bddword limit)
+int BDD_LevOfVar(int v) 
+int BDD_VarOfLev(int lev)
+int BDD_VarUsed(void)
+int BDD_TopLev(void)
+bddword BDD_Used(void)
+void BDD_GC(void)
+
+---------------------公開クラスメソッド---------------------
+SOP::SOP(void)
+基本constructer。初期値として空集合（恒偽式）を表すSOPオブジェクトを生成する。
+
+SOP::SOP(int val)
+定数式を作り出す constructer。val == 0 ならば恒偽式、val > 0 ならば恒真式、
+val < 0 ならば null を表すSOPオブジェクトを生成する。
+
+SOP::SOP(const SOP& f)
+引数fを複製する constructer。
+
+SOP::SOP(const ZBDD& zbdd)
+内部表現の ZBDD 表現 zbdd を引数として、それを複製する constructer。
+
+SOP::~SOP(void)
+destructer。
+
+SOP& SOP::operator=(const SOP& f)
+自分自身にfを代入し、fを返す。
+
+SOP SOP::operator&=(const SOP& f)
+自分自身とfとの交わり(intersection)を求め、自分自身に代入する。
+記憶あふれの場合はnullを代入する。自分自身や引数がnullのときにはnullとなる。
+
+SOP SOP::operator+=(const SOP& f)
+自分自身とfとの結び(union)を求め、自分自身に代入する。記憶あふれの場合は
+nullを代入する。自分自身や引数がnullのときにはnullとなる。
+
+SOP SOP::operator-=(const SOP& f)
+自分自身からfを引いた差分集合を求め、自分自身に代入する。記憶あふれの
+場合はnullを代入する。自分自身や引数がnullのときにはnullとなる。
+
+SOP SOP::operator*=(const SOP& f)
+自分自身とfの直積（算術乗算）を求め、自分自身に代入する。記憶あふ
+れの場合はnullを代入する。自分自身や引数がnullのときにはnullとなる。
+
+SOP SOP::operator/=(const SOP& f)
+自分自身をfで割った商（weak division）を求め、自分自身に代入する。記憶
+あふれの場合はnullを代入する。自分自身や引数がnullのときにはnullとなる。
+
+SOP SOP::operator%=(const SOP& f)
+自分自身をfで割った余り（weak divisionの剰余）を求め、自分自身に代入す
+る。記憶あふれの場合はnullを代入する。自分自身や引数がnullのときには
+
+SOP SOP::operator<<=(int)
+自分自身のグラフに対して、関係する全てのリテラルを、展開順位(level)がsずつ
+大きい（上位にある）変数の変数番号(VarID)にそれぞれ書き換えて複製した
+積項集合を、自分自身に代入する。また演算結果を関数値として返す。sは偶数で
+なければならない。実行結果において未定義のリテラルが必要になるようなsを
+与えてはならない。必要なリテラルはあらかじめ宣言しておくこと。記憶あふれの
+場合は、null を表すオブジェクトを返す。自分自身が null のときは何もしない。
+sに負の値を指定することはできない。
+
+SOP SOP::operator>>=(int s)
+自分自身のグラフに対して、関係する全てのリテラルを、展開順位(level)がsずつ
+小さい（下位にある）変数の変数番号(VarID)にそれぞれ書き換えて複製した
+積項集合を、自分自身に代入する。また演算結果を関数値として返す。sは偶数で
+なければならない。実行結果において未定義のリテラルが必要になるようなsを
+与えてはならない。必要なリテラルはあらかじめ宣言しておくこと。記憶あふれの
+場合は、null を表すオブジェクトを返す。自分自身が null のときは何もしない。
+sに負の値を指定することはできない。
+
+SOP SOP::operator<<(int s) const 
+自分自身のグラフに対して、関係する全てのリテラルを、展開順位(level)がsずつ
+大きい（上位にある）変数の変数番号(VarID)にそれぞれ書き換えて複製したSOP
+オブジェクトを生成し、それを返す。sは偶数でなければならない。実行結果に
+おいて未定義のリテラルが必要になるようなsを与えてはならない。必要な
+リテラルはあらかじめ宣言しておくこと。記憶あふれの場合は、null を表す
+オブジェクトを返す。自分自身が null のときは何もしない。sに負の値を
+指定することはできない。
+
+SOP SOP::operator>>(int s) const 
+自分自身のグラフに対して、関係する全てのリテラルを、展開順位(level)がsずつ
+小さい（下位にある）変数の変数番号(VarID)にそれぞれ書き換えて複製したSOP
+オブジェクトを生成し、それを返す。sは偶数でなければならない。実行結果に
+おいて未定義のリテラルが必要になるようなsを与えてはならない。必要な
+リテラルはあらかじめ宣言しておくこと。記憶あふれの場合は、null を表す
+オブジェクトを返す。自分自身が null のときは何もしない。sに負の値を
+指定することはできない。
+
+SOP SOP::And0(int var) const 
+自分自身の各積項に、変数番号varの負リテラルを追加した積項集合のSOP
+オブジェクトを生成し、それを返す。ただし、同じ番号の正リテラルをすでに
+含む項は消される。記憶あふれの場合や自分自身がnullのときにはnullを返す。
+
+SOP SOP::And1(int var) const 
+自分自身の各積項に、変数番号varの正リテラルを追加した積項集合のSOP
+オブジェクトを生成し、それを返す。ただし、同じ番号の負リテラルをすでに
+含む項は消される。記憶あふれの場合や自分自身がnullのときにはnullを返す。
+
+SOP SOP::Factor0(int var) const 
+自分自身を、変数番号varの負リテラルで割ったときの商を返す。すなわち、
+該当リテラルを含む項をすべて取りだし、その各項から該当リテラルを取り除
+いたSOPオブジェクトを生成し、それを返す。記憶あふれの場合や自分自身が
+nullのときにはnullを返す。
+
+SOP SOP::Factor1(int var) const 
+自分自身を、変数番号varの正リテラルで割ったときの商を返す。すなわち、
+該当リテラルを含む項をすべて取りだし、その各項から該当リテラルを取り除
+いたSOPオブジェクトを生成し、それを返す。記憶あふれの場合や自分自身が
+nullのときにはnullを返す。
+
+SOP SOP::FactorD(int var) const 
+自分自身の積項のうち、変数番号varの正・負リテラルをどちらも含まない
+項からなるSOPオブジェクトを生成し、それを返す。記憶あふれの場合や
+自分自身がnullのときにはnullを返す。
+
+int SOP::Top(void) const 
+自分自身のグラフが含んでいるリテラルの中で、最上位の展開順位を持つリテラル
+（正リテラル）の変数番号を返す。必ず偶数になる。nullに対しては0を返す。
+
+SOP SOP::Swap(int var1, int var2) const 
+自分自身のグラフに対して、変数番号var1とvar2のリテラルを入れ換えた
+ときの積項集合を表すSOPオブジェクトを生成し、それを返す。var1, var2は
+正リテラルの番号（偶数）を指定するだけで、負リテラルも同時に入れ替えが実行
+される。引数はlevelではなく、変数番号で与えることに注意。記憶あふれの
+場合は、nullを表すオブジェクトを返す。自分自身がnullのときは、nullを
+返す。
+
+bddword SOP::Size(void) const 
+自分自身のグラフの節点数を返す。nullに対しては0を返す。
+
+bddword SOP::Cube(void) const 
+自分自身の積項数を返す。nullに対しては0を返す。
+
+bddword SOP::Lit(void) const 
+自分自身の総リテラル数（各積項のリテラル数の総和）を返す。nullに対しては0を返す。
+
+int SOP::IsPolyCube(void) const 
+自分自身が複数個の積項を持つ場合（多項式）には 1、そうでなければ 0 
+を返す。nullに対しては0を返す。記憶あふれの場合は0を返す。
+
+int SOP::IsPolyLit(void) const 
+自分自身が複数個のリテラルを持つ場合には 1、そうでなければ 0 を返す。
+nullに対しては0を返す。記憶あふれの場合は0を返す。
+
+SOP SOP::Divisor(void) const 
+自分自身を割るときの除数候補の１つを表すSOPオブジェクトを生成し、それを返
+す。0に対しては0を返す。1に対しては1を返す。単項式に対しては1を返す。
+多項式で同じリテラルが２度現れない場合には、自分自身のコピーを返す。
+同じリテラルが２度以上現れる場合には、商にそのリテラルが含まれる
+ような除数を返す。得られた除数には、同じリテラルは２度現れない。nullを
+与えた場合や記憶あふれの場合はnullを返す。
+
+SOP SOP::Implicants(BDD f) const 
+自分自身の積項のうち、fで与えた論理関数の内項（f=1となる部分のみをカバー
+している積項）を抽出し、その集合を表すSOPオブジェクトを生成して返す。記憶
+あふれの場合は、null を表すオブジェクトを返す。
+
+SOP SOP::Support(void) const 
+自分自身の集合に現れる正または負のリテラルを抽出し、抽出されたリテラルの
+正リテラル１個ずつを要素とする集合を表すSOPオブジェクトを生成し、それを返す。
+記憶あふれの場合は、null を表すオブジェクトを返す。
+
+void SOP::Print(void) const 
+インデックスの値、最上位のリテラル番号、ノード数、積項数、リテラル数の
+情報を標準出力に出力する。
+
+int SOP::PrintPla(void) const 
+自分自身が表す集合を表形式（pla format）で標準出力に出力する。
+
+ZBDD SOP::GetZBDD(void) const 
+内部表現の ZBDD を複製したオブジェクトを生成して、それを返す。
+
+BDD SOP::GetBDD(void) const 
+自分自身の積項集合が表す論理関数のBDDオブジェクトを生成し、それを返す。
+記憶あふれの場合や自分自身がnullのときにはnullを返す。
+
+SOP SOP::InvISOP(void) const 
+自分自身の積項集合が表す論理関数の否定関数を求め、その非冗長積和形を
+表すSOPオブジェクトを生成し、それを返す。記憶あふれの場合や自分自身が
+nullのときにはnullを返す。
+
+
+
+
+
+
+
+**************************************************************************
+クラス名: SOPV  --- SOPの配列（積和形論理式の配列）を表すクラス
+**************************************************************************
+ヘッダーファイル名: "SOP.h"
+ソースファイル名: SOP.cc
+内部から呼び出しているクラス: BDD, ZBDD, SOP
+
+SOP の配列を表すクラス。配列要素の番号は 0 から始まる整数である。ZBDDVと
+同様に、内部では出力選択変数を用いた二分木で処理している。あらかじめ
+配列長を宣言する必要はなく、要素にアクセスした瞬間にその要素の分だけの
+メモリが確保される。SOPV 同士の演算で配列長が一致していない場合、足りない方
+の要素は 0 が仮定される。未使用の要素を参照した場合も 0 が返される。
+
+---------------------関連する定数値---------------------
+extern const int BDDV_SysVarTop
+extern const int BDDV_MaxLen
+extern const bddword BDD_MaxNode 
+extern const int BDD_MaxVar 
+extern const bddword BDD_MaxNode 
+extern const int BDD_MaxVar 
+
+---------------------関連する外部関数---------------------
+int SOPV_NewVar(void)
+（このメソッドは旧版で用いていた。なくても困らないはずである）
+SOP_NewVar()と同様に、新しいリテラル（正負１組）を生成し、正リテラルの変数
+番号(通称VarID)を返す。負リテラルのVarIDは正リテラルよりも1小さい数値となる。
+SOP_NewVar()との違いは、VarIDが2から始まるのではなく、(BDDV_SysVarTop + 2)
+から始まる点である。ただし変数の順位(通称level)は1からスタートする。
+出力選択変数のlevelは2ずつ上位にシフトしていく。
+
+int SOPV_NewVarOfLev(int lev)
+（このメソッドは旧版で用いていた。なくても困らないはずである）
+SOP_NewVarOfLev()と同様に、新しいリテラル（正負１組）を生成し、正リテラルの
+変数番号(通称VarID)を返す。負リテラルのVarIDは正リテラルよりも1小さい数値
+となる。SOP_NewVar()との違いは、VarIDが2から始まるのではなく、
+(BDDV_SysVarTop + 2)から始まる点である。ただし指定できる変数の順位(通称level)は、
+2以上かつ「これまでユーザが宣言した変数の個数 +2」までである。出力選択変数の
+levelは2ずつ上位にシフトしていく。
+
+SOPV operator&(const SOPV& fv, const SOPV& gv)
+fvとgvの各配列要素同士の共通項(intersection)を表すSOPVオブジェクトを生成し、
+それを返す。
+
+SOPV operator+(const SOPV& fv, const SOPV& gv)
+fvとgvの各配列要素同士の結び(union)を表すSOPVオブジェクトを生成し、
+それを返す。
+
+SOPV operator-(const SOPV& fv, const SOPV& gv)
+各配列要素同士について、fvからgvを引いた差分集合を表すSOPVオブジェクトを
+生成し、それを返す。
+
+int operator==(const SOPV& fv, const SOPV& gv)
+fvとgvの各配列要素同士が全て同じかどうかの真偽(1/0)を返す。
+
+int operator!=(const SOPV& fv, const SOPV& gv)
+fvとgvの各配列要素のうち少なくとも１つが異なるかどうかの真偽(1/0)を返す。
+
+SOPV SOPV_ISOP(BDDV fv)
+fvで与えられた論理関数ベクトルの各配列要素について非冗長積和形を表す
+SOPVオブジェクト生成し、それを返す。記憶あふれの場合や引数にnullが含まれて
+いるときにはnullを返す。
+
+SOPV SOPV_ISOP(BDDV on, BDDV dc)
+オンセット配列on、ドントケアセット配列dcの組によって表される論理関数
+ベクトルの非冗長積和形を表すSOPVオブジェクトを生成し、それを返す。記憶あふれ
+の場合や引数にnullが含まれているときにはnullを返す。
+
+SOPV SOPV_ISOP2(BDDV f)
+fvで与えられた論理関数ベクトルの各配列要素について非冗長積和形を表す
+SOPVオブジェクト生成し、それを返す。総リテラル数がなるべく小さく
+なるように、出力にインバータが自動的に挿入される。生成結果の SOPV オブ
+ジェクトは、出力数を n のとき、0 〜(n-1)番目の要素が積和形を表し、n 
+〜(2n-1)番目の要素が1（空集合）または0（単位元集合）を表している。
+記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+SOPV SOPV_ISOP2(BDDV on, BDDV dc)
+オンセット配列on、ドントケアセット配列dcの組によって表される論理関数
+ベクトルの非冗長積和形を表すSOPVオブジェクトを生成し、それを返す。
+総リテラル数がなるべく小さくなるように、出力にインバータが自動的に
+挿入される。生成結果の SOPVオブジェクトは、出力数を n のとき、
+0 〜(n-1)番目の要素が積和形を表し、n 〜(2n-1)番目の要素が1（空集合）
+または0（単位元集合）を表している。記憶あふれの場合や引数にnullが
+含まれているときにはnullを返す。
+
+（再掲）
+void BDDV_Init(bddword init, bddword limit)
+int BDD_LevOfVar(int v) 
+int BDD_VarOfLev(int lev)
+int BDD_VarUsed(void)
+int BDD_TopLev(void)
+bddword BDD_Used(void)
+void BDD_GC(void)
+
+---------------------公開クラスメソッド---------------------
+SOPV::SOPV(void)
+基本constructer。初期値として空集合（恒偽式）を表すSOPVオブジェクトを
+生成する。
+
+SOPV::SOPV(const SOPV& fv)
+引数fvを複製するconstructer。
+
+SOPV::SOPV(const ZBDDV& fv)
+内部表現の ZBDDV 表現fvを引数として、それを複製する constructer。
+
+SOPV::SOPV(const SOP& f, int location = 0)
+第location番目の配列要素がfで、それ以外の要素が空集合となっている
+SOPVオブジェクトを生成するconstructer。fがnullのときは、locationの値に
+関わらず、長さ1のnullとなる。
+
+SOPV::~SOPV(void)
+destructer。
+
+SOPV& SOPV::operator=(const SOPV& fv)
+自分自身にfvを代入し、関数値としてfvを返す。
+
+SOPV SOPV::operator&=(const SOPV& fv)
+自分自身とfvとの共通項(intersection)を各配列要素毎に求め、自分自身に
+代入する。記憶あふれの場合は長さ1のnullを代入する。自分自身や引数が
+nullのときにはnullとなる。
+
+SOPV SOPV::operator+=(const SOPV& fv)
+自分自身とfvの少なくとも一方に含まれる積項集合(union)を各配列要素毎に
+求め、自分自身に代入する。記憶あふれの場合は長さ1のnullを代入する。
+自分自身や引数がnullのときにはnullとなる。
+
+SOPV SOPV::operator-=(const SOPV& fv)
+自分自身からfvとの共通項を除いた差分集合を各配列要素毎に求め、自分自身
+に代入する。記憶あふれの場合は長さ1のnullを代入する。自分自身や引数が
+nullのときにはnullとなる。
+
+SOPV SOPV::operator<<=(int s)
+自分自身の各配列要素に対して、関係する全てのリテラルを、展開順位(level)がsずつ
+大きい（上位にある）変数の変数番号(VarID)にそれぞれ書き換えて複製した積項集合の
+配列を生成し、自分自身に代入する。また演算結果を関数値として返す。sは偶数で
+なければならない。実行結果において未定義のリテラルが必要になるようなsを
+与えてはならない。必要なリテラルはあらかじめ宣言しておくこと。記憶あふれの
+場合は、null を表すオブジェクトを返す。自分自身が null のときは何もしない。
+sに負の値を指定することはできない。
+
+SOPV SOPV::operator>>=(int s)
+自分自身の各配列要素に対して、関係する全てのリテラルを、展開順位(level)がsずつ
+小さい（下位にある）変数の変数番号(VarID)にそれぞれ書き換えて複製した積項集合
+の配列を生成し、自分自身に代入する。また演算結果を関数値として返す。sは偶数で
+なければならない。実行結果において未定義のリテラルが必要になるようなsを
+与えてはならない。必要なリテラルはあらかじめ宣言しておくこと。記憶あふれの
+場合は、null を表すオブジェクトを返す。自分自身が null のときは何もしない。
+sに負の値を指定することはできない。
+
+SOPV SOPV::operator<<(int s) const 
+自分自身の各配列要素に対して、関係する全てのリテラルを、展開順位(level)がsずつ
+大きい（上位にある）変数の変数番号(VarID)にそれぞれ書き換えて複製したSOPV
+オブジェクトを生成し、それを返す。また演算結果を関数値として返す。sは偶数で
+なければならない。実行結果において未定義のリテラルが必要になるようなsを
+与えてはならない。必要なリテラルはあらかじめ宣言しておくこと。記憶あふれの
+場合は、null を表すオブジェクトを返す。自分自身が null のときは何もしない。
+sに負の値を指定することはできない。
+
+SOPV SOPV::operator>>(int s) const 
+自分自身の各配列要素に対して、関係する全てのリテラルを、展開順位(level)がsずつ
+小さい（下位にある）変数の変数番号(VarID)にそれぞれ書き換えて複製したSOPV
+オブジェクトを生成し、それを返す。また演算結果を関数値として返す。sは偶数で
+なければならない。実行結果において未定義のリテラルが必要になるようなsを
+与えてはならない。必要なリテラルはあらかじめ宣言しておくこと。記憶あふれの
+場合は、null を表すオブジェクトを返す。自分自身が null のときは何もしない。
+sに負の値を指定することはできない。
+
+SOPV SOPV::And0(int var) const 
+自分自身の各配列要素の各積項に、変数番号varの負リテラルを追加した積項集合の
+配列を表すSOPVオブジェクトを生成し、それを返す。ただし、同じ番号の正リテラルを
+すでに含む項は消される。記憶あふれの場合や自分自身がnullのときにはnullを返す。
+
+SOPV SOPV::And1(int var) const 
+自分自身の各配列要素の各積項に、変数番号varの正リテラルを追加した積項集合の
+配列を表すSOPVオブジェクトを生成し、それを返す。ただし、同じ番号の負リテラルを
+すでに含む項は消される。記憶あふれの場合や自分自身がnullのときにはnullを返す。
+
+SOPV SOPV::Factor0(int var) const 
+自分自身の各配列要素について、変数番号varの負リテラルで割ったときの商に
+相当する積項集合の配列を返す。すなわち、該当リテラルを含む項をすべて取りだし、
+その各項から該当リテラルを取り除いたSOPVオブジェクトを生成し、それを返す。
+記憶あふれの場合や自分自身がnullのときにはnullを返す。
+
+SOPV SOPV::Factor1(int var) const 
+自分自身の各配列要素について、変数番号varの正リテラルで割ったときの商に
+相当する積項集合の配列を返す。すなわち、該当リテラルを含む項をすべて取りだし、
+その各項から該当リテラルを取り除いたSOPVオブジェクトを生成し、それを返す。
+記憶あふれの場合や自分自身がnullのときにはnullを返す。
+
+SOPV SOPV::FactorD(int var) const 
+自分自身の各配列要素の積項のうち、変数番号varの正・負リテラルをどちらも
+含まない項からなるSOPVオブジェクトを生成し、それを返す。記憶あふれの場合や
+自分自身がnullのときにはnullを返す。
+
+int SOPV::Top(void) const 
+自分自身の各配列要素が含んでいるリテラルの中で、最上位の展開順位を持つ
+リテラル（正リテラル）の変数番号を返す。必ず偶数になる。nullに対しては0を返す。
+
+bddword SOPV::Size(void) const 
+自分自身のグラフのノード数を返す。nullに対しては0を返す。出力選択変数に
+関する節点は含まない。
+
+bddword SOPV::Cube(void) const 
+自分自身の積項数（AND ゲート数）を返す。
+
+bddword SOPV::Lit(void) const 
+自分自身の総リテラル数（AND ゲートの総ファンイン数）を返す。
+
+void SOPV::Print(void) const 
+インデックスの値、最上位のリテラル番号、ノード数、積項数、リテラル数の
+情報を標準出力に出力する。
+
+int SOPV::PrintPla(void) const 
+自分自身が表す集合を表形式（pla format）で標準出力に出力する。関数の値
+は、通常0を返す。nullを与えた場合や記憶あふれの場合は出力を中断し、1を
+返す。
+
+SOPV SOPV::Mask(int start, int length = 1) const 
+自分自身の第 start 番目から 第(start+length-1)番目までの配列要素を
+残し、その他の配列要素を 0（空集合）としたSOPVオブジェクトを生成し、
+それを返す。
+
+SOP SOPV::GetSOP(int ix) const 
+自分自身の第ix番目の配列要素を返す。
+
+ZBDDV SOPV::GetZBDDV(void) const 
+内部表現の ZBDDV を複製し、それを返す。
+
+int SOPV::Last(void) const 
+自分自身の（意味のある）配列要素の中の、最大の要素番号を返す。
+
+SOPV SOPV::Swap(int, int) const 
+自分自身の各配列要素に対して、変数番号var1とvar2のリテラルを入れ換えた
+ときの積項集合の配列を表すSOPVオブジェクトを生成し、それを返す。
+var1, var2は正リテラルの番号（偶数）を指定するだけで、負リテラルも同時に
+入れ替えが実行される。引数はlevelではなく、変数番号で与えることに注意。
+記憶あふれの場合は、nullを表すオブジェクトを返す。自分自身がnullのときは、
+nullを返す。
+
+
+
+
+
+
+
+
+
+
+
+**************************************************************************
+クラス名: PiDD  ---順列集合を表現するクラス
+**************************************************************************
+ヘッダーファイル名: "PiDD.h"
+ソースファイル名: PiDD.cc
+内部から呼び出しているクラス: BDD, ZBDD
+
+順列集合を表すPiDDを扱うクラスである。順列集合は順列の和集合であり、
+順列は互換演算の積集合である。PiDD_NewVar()を用いて変数を宣言することにより、
+PiDDのアイテム番号が１つずつ割り当てられる。
+
+（使用例）
+int v1 = PiDD_NewVar();
+int v2 = PiDD_NewVar();
+int v3 = PiDD_NewVar();
+int v4 = PiDD_NewVar();
+PiDD P1 = PiDD(1).Swap(v1, v2);
+PiDD P2 = PiDD(1).Swap(v2, v3);
+PiDD P3 = P1 + P2;
+PiDD P4 = P1.Swap(v3, v4) + P3;
+P3.Print();
+P4.Print();
+
+---------------------関連する定数値---------------------
+extern const int PiDD_MaxVar 254
+
+---------------------関連する外部関数---------------------
+int PiDD_NewVar(void)
+新しいアイテム変数を生成し変数番号（PiVarID）を返す。
+PiVarIDは1から始まる整数で、PiDD_NewVar()を1回実行するごとに1ずつ
+大きな値が返る。その値をXとすると、実際には(X,1)(X,2)…(X,X-1)の互換を
+区別するためのZBDDのIDが内部で自動的に確保される。
+アイテム変数の個数が最大値PiDD_MaxVarを超えるとエラーを出力して異常終了する。
+
+int PiDD_VarUsed(void)
+これまでに宣言したアイテム変数の個数を返す。
+
+PiDD operator&(const PiDD& P, const PiDD& Q)
+P と Q の交わり(intersection)を表すPiDDオブジェクトを生成し、それを返す。
+記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+PiDD operator+(const PiDD& P, const PiDD& Q)
+P と Q の結び(union)を表すPiDDオブジェクトを生成し、それを返す。
+記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+PiDD operator-(const PiDD& P, const PiDD& Q)
+P から Q を引いた差集合(difference)を表すPiDDオブジェクトを生成し、それを返す。
+記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+int operator==(const PiDD& P, const PiDD& Q)
+P と Q が同じ集合かどうかの真偽(1/0)を返す。
+
+int operator!=(const PiDD& P, const PiDD& Q)
+P と Q が異なる集合かどうかの真偽(1/0)を返す。
+
+PiDD operator*(const PiDD& P, const PiDD& Q)
+P と Q の直積を表すPiDDオブジェクトを生成し、それを返す。
+記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+（再掲）
+void BDD_Init(bddword init, bddword limit)
+int BDD_LevOfVar(int v) 
+int BDD_VarOfLev(int lev)
+int BDD_VarUsed(void)
+int BDD_TopLev(void)
+bddword BDD_Used(void)
+void BDD_GC(void)
+
+---------------------公開クラスメソッド---------------------
+PiDD::PiDD(void)
+基本constructer。初期値として空集合を表すPiDDオブジェクトを生成する。
+
+PiDD::PiDD(int val)
+定数式を作り出す constructer。val == 0 ならば空集合、val > 0 ならば恒等順列
+だけからなる順列集合、
+val < 0 ならば null を表すPiDDオブジェクトを生成する。
+
+PiDD::PiDD(const PiDD& P)
+引数Pを複製する constructer。
+
+PiDD::PiDD(const ZBDD& zbdd)
+内部表現の ZBDD 表現 zbdd を引数として、それを複製する constructer。
+
+PiDD::~PiDD(void)
+destructer。
+
+PiDD& PiDD::operator=(const PiDD& P)
+自分自身にPを代入し、Pを返す。
+
+PiDD PiDD::operator&=(const PiDD& P)
+自分自身とPとの交わり(intersection)を求め、自分自身に代入する。
+記憶あふれの場合はnullを代入する。自分自身や引数がnullのときにはnullとなる。
+
+PiDD PiDD::operator+=(const PiDD& P)
+自分自身とPとの結び(union)を求め、自分自身に代入する。記憶あふれの場合は
+nullを代入する。自分自身や引数がnullのときにはnullとなる。
+
+PiDD PiDD::operator-=(const PiDD& P)
+自分自身からPを引いた差集合(difference)を求め、自分自身に代入する。記憶あふれの
+場合はnullを代入する。自分自身や引数がnullのときにはnullとなる。
+
+PiDD PiDD::operator*=(const PiDD& P)
+自分自身とPの直積を求め、自分自身に代入する。記憶あふれの場合はnullを代入する。自分自身や引数がnullのときにはnullとなる。
+
+PiDD PiDD::Swap(int x, int y) const 
+自分自身が含む各順列に対して番号xとyのアイテムを互換した順列からなる
+順列集合のPiDDオブジェクトを生成し、それを返す。記憶あふれの場合や自分自身が
+nullのときにはnullを返す。xまたはy が、0以下であるか宣言されていない大きな番号の場合は、エラーを出力して異常終了する。
+
+PiDD PiDD::Cofact(int x, int y) const 
+自分自身が含む各順列の中で、番号xのアイテムが番号yのアイテムに移動するような順列のみを取り出して、さらにxとyを互換して得られる順列からなる順列集合を表すPiDDオブジェクトを生成し、それを返す。記憶あふれの場合や自分自身がnullのときにはnullを返す。x == yの場合は、xが動かない順列のみが抽出される。xまたはy が、0以下であるか宣言されていない大きな番号の場合は、エラーを出力して異常終了する。
+
+PiDD PiDD::Odd(void) const 
+自分自身が含む順列の中から奇置換のみを取り出した順列集合を表すPiDDオブジェクトを生成し、それを返す。記憶あふれの場合や自分自身がnullのときにはnullを返す。
+
+PiDD PiDD::Even(void) const 
+自分自身が含む順列の中から偶置換のみを取り出した順列集合を表すPiDDオブジェクトを生成し、それを返す。記憶あふれの場合や自分自身がnullのときにはnullを返す。
+
+PiDD PiDD::SwapBound(int n) const 
+自分自身が含む順列の中からn回以下の互換で生成可能なものだけを取り出した順列集合を表すPiDDオブジェクトを生成し、それを返す。記憶あふれの場合や自分自身がnullのときにはnullを返す。
+
+int PiDD::TopX(void) const 
+自分自身のグラフが含んでいる順列集合の中で、最上位の展開順位を持つ互換を(X,Y)とすると、番号Xを返す。nullに対しては0を返す。
+
+int PiDD::TopY(void) const 
+自分自身のグラフが含んでいる順列集合の中で、最上位の展開順位を持つ互換を(X,Y)とすると、番号Yを返す。nullに対しては0を返す。
+
+int PiDD::TopLev(void) const 
+自分自身のグラフが含んでいる順列集合の中で、最上位の展開順位を持つ互換に割り当てられているBDDのlevel番号を返す。nullに対しては0を返す。
+
+bddword PiDD::Size(void) const 
+自分自身のグラフの節点数を返す。nullに対しては0を返す。
+
+bddword PiDD::Card(void) const 
+自分自身が含む順列の個数を返す。nullに対しては0を返す。
+
+void PiDD::Print(void) const 
+インデックスの値、最上位の変数番号、ノード数、順列の個数、互換の総数の
+情報を標準出力に出力する。
+
+void PiDD::Enum(void) const 
+自分自身が表す順列集合を、順列を列挙する形式で標準出力に出力する。
+
+void PiDD::Enum2(void) const 
+自分自身が表す順列集合を、互換標準形を列挙する形式で標準出力に出力する。
+
+ZBDD PiDD::GetZBDD(void) const 
+内部表現の ZBDD を複製したオブジェクトを生成して、それを返す。
+
+
+
+
+
+
+
+
+
+**************************************************************************
+クラス名: SeqBDD  ---系列集合を表現するクラス
+**************************************************************************
+ヘッダーファイル名: "SeqBDD.h"
+ソースファイル名: SeqBDD.cc
+内部から呼び出しているクラス: BDD, ZBDD
+
+系列集合を表すSeqBDDを扱うクラスである。
+
+（使用例）
+int v1 = SeqBDD_NewVar();
+int v2 = SeqBDD_NewVar();
+int v3 = SeqBDD_NewVar();
+int v4 = SeqBDD_NewVar();
+SeqBDD S1 = SeqBDD(1).Push(v1);
+SeqBDD S2 = SeqBDD(1).Push(v2).Push(v3);
+SeqBDD S3 = S1 + S2;
+SeqBDD S4 = S1.Push(v4) + S3;
+S3.Print();
+S4.Print();
+
+---------------------関連する外部関数---------------------
+SeqBDD operator&(const SeqBDD& F, const SeqBDD& G)
+F と G の交わり(intersection)を表すSeqBDDオブジェクトを生成し、それを返す。
+記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+SeqBDD operator+(const SeqBDD& F, const SeqBDD& G)
+F と G の結び(union)を表すSeqBDDオブジェクトを生成し、それを返す。
+記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+SeqBDD operator-(const SeqBDD& F, const SeqBDD& G)
+F から G を引いた差集合(difference)を表すSeqBDDオブジェクトを生成し、それを返す。
+記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+SeqBDD operator*(const SeqBDD& F, const SeqBDD& G)
+F と G の直積集合(Cartesian Product)を表すSeqBDDオブジェクトを生成し、それを返す。
+記憶あふれの場合や引数にnullが含まれているときにはnullを返す。
+
+SeqBDD operator/(const SeqBDD& F, const SeqBDD& P)
+F を P で割った商(Quotient)を表すSeqBDDオブジェクトを生成し、それを返す。
+P=0のときはエラー。記憶あふれの場合や引数にnullが含まれている場合にはnullを返す。
+
+SeqBDD operator%(const SeqBDD& F, const SeqBDD& P)
+F を P で割った剰余(Remainder)を表すSeqBDDオブジェクトを生成し、それを返す。
+P=0のときはエラー。記憶あふれの場合や引数にnullが含まれている場合にはnullを返す。
+
+int operator==(const SeqBDD& F, const SeqBDD& G)
+F と G が同じ集合かどうかの真偽(1/0)を返す。
+
+int operator!=(const SeqBDD& F, const SeqBDD& G)
+F と G が異なる集合かどうかの真偽(1/0)を返す。
+
+（再掲）
+void BDD_Init(bddword init, bddword limit)
+int BDD_LevOfVar(int v) 
+int BDD_VarOfLev(int lev)
+int BDD_VarUsed(void)
+int BDD_TopLev(void)
+bddword BDD_Used(void)
+void BDD_GC(void)
+
+---------------------公開クラスメソッド---------------------
+SeqBDD::SeqBDD(void)
+基本constructer。初期値として空集合を表すSeqBDDオブジェクトを生成する。
+
+SeqBDD::SeqBDD(int val)
+定数式を作り出す constructer。val == 0 ならば空集合、val > 0 ならば空列だけからなる系列集合、val < 0 ならば null を表すPiDDオブジェクトを生成する。
+
+SeqBDD::SeqBDD(const SeqBDD& F)
+引数Fを複製する constructer。
+
+SeqBDD::SeqBDD(const ZBDD& zbdd)
+内部表現の ZBDD 表現 zbdd を引数として、それを複製する constructer。
+
+SeqBDD::~SeqBDD(void)
+destructer。
+
+SeqBDD& SeqBDD::operator=(const SeqBDD& F)
+自分自身にFを代入し、Fを返す。
+
+SeqBDD SeqBDD::operator&=(const SeqBDD& F)
+自分自身とFとの交わり(intersection)を求め、自分自身に代入する。
+記憶あふれの場合はnullを代入する。自分自身や引数がnullのときにはnullとなる。
+
+SeqBDD SeqBDD::operator+=(const SeqBDD& F)
+自分自身とFとの結び(union)を求め、自分自身に代入する。記憶あふれの場合は
+nullを代入する。自分自身や引数がnullのときにはnullとなる。
+
+SeqBDD SeqBDD::operator-=(const SeqBDD& F)
+自分自身からFを引いた差集合(difference)を求め、自分自身に代入する。記憶あふれの
+場合はnullを代入する。自分自身や引数がnullのときにはnullとなる。
+
+SeqBDD SeqBDDDD::operator*=(const SeqBDD& F)
+自分自身とFの直積を求め、自分自身に代入する。記憶あふれの場合はnullを代入する。自分自身や引数がnullのときにはnullとなる。
+
+SeqBDD SeqBDDDD::operator/=(const SeqBDD& P)
+自分自身をPで割ったときの商を求め、自分自身に代入する。記憶あふれの場合はnullを代入する。P=0のときはエラーとなる。自分自身や引数がnullのときにはnullとなる。
+
+SeqBDD SeqBDD::operator%=(const SeqBDD& P)
+自分自身をPで割ったときの剰余を求め、自分自身に代入する。記憶あふれの場合はnullを代入する。P=0のときはエラーとなる。自分自身や引数がnullのときにはnullとなる。
+
+SeqBDD SeqBDD::OffSet(int var) const 
+自分自身の系列集合の中で、変数番号varの文字で始まらない系列だけを取り出した集合のオブジェクトを生成しそれを返す。nullに対しては0を返す。範囲外の変数番号を与えるとエラー。
+
+SeqBDD SeqBDD::OnSet0(int var) const 
+自分自身の系列集合の中で、変数番号varの文字で始まる系列だけを取り出し、それらの1文字目を取り除いた系列の集合のオブジェクトを生成しそれを返す。nullに対しては0を返す。範囲外の変数番号を与えるとエラー。
+
+SeqBDD SeqBDD::OnSet(int var) const 
+自分自身の系列集合の中で、変数番号varの文字で始まる系列だけを取り出した集合のオブジェクトを生成しそれを返す。nullに対しては0を返す。範囲外の変数番号を与えるとエラー。
+
+SeqBDD SeqBDD::Push(int var) const 
+自分自身の系列集合の各系列に対して、変数番号varの文字を先頭に追加して得られる集合のオブジェクトを生成しそれを返す。nullに対しては0を返す。範囲外の変数番号を与えるとエラー。
+
+int SeqBDD::Top(void) const 
+自分自身の系列集合に含まれる系列の先頭文字の中で、最上位の変数番号を返す。nullに対しては0を返す。
+
+bddword SeqBDD::Size(void) const 
+自分自身のグラフの節点数を返す。nullに対しては0を返す。
+
+bddword SeqBDD::Card(void) const 
+自分自身が含む系列の個数を返す。nullに対しては0を返す。
+
+bddword SeqBDD::Lit(void) const 
+自分自身の系列集合の総文字数を返す。nullに対しては0を返す。
+
+bddword SeqBDD::Len(void) const 
+自分自身のグラフの高さ（最長経路の長さ）を返す。nullに対しては0を返す。
+
+void PiDD::PrintSeq(void) const 
+自分自身が含む系列を辞書順に標準出力に出力する。
+
+ZBDD PiDD::GetZBDD(void) const 
+内部表現の ZBDD を複製したオブジェクトを生成して、それを返す。
+
+
+
+
+
+
+
+
+
+**************************************************************************
+クラス名: GraphSupport  ---ZBDDでパス/サイクル列挙を行うためのクラス
+**************************************************************************
+ヘッダーファイル名: "GraphSupport.h"
+ソースファイル名: GraphSupport.cc
+内部から呼び出しているクラス: BDD, ZBDD
+
+ZBDDでパス/サイクル列挙を行うためのクラスである。n頂点、m辺からなる
+グラフを表現する。頂点番号は1からnまでの自然数、辺番号は
+0からm-1までの自然数とする。
+（なお、このクラスは現在開発中のため、今後変更される場合があります）
+
+---------------------公開クラスメソッド---------------------
+GraphSupport::GraphSupport(void)
+constructer。初期値として空のGraphSupportオブジェクトを生成する。
+
+GraphSupport::~GraphSupport(void)
+destructer。副次的に確保した記憶領域を全て開放する。
+
+int GraphSupport::Init(const int n, const int m)
+自分自身が空でない場合はデータを消去し記憶領域を解放する。その後、
+n頂点、m辺からなるグラフを保持するための記憶領域を確保する。
+各辺の両端点の頂点番号は0(null)が初期値で入っている。
+正常終了の場合0を返し、記憶あふれの場合は1を返す。
+
+int GraphSupport::Pack(void)
+自分自身のグラフデータを走査し、どの辺からも参照されていない
+孤立頂点を消去し、残った頂点に1から始まる番号を振り直して
+自分自身のグラフデータを正規化する。正常終了の場合0を返し、
+記憶あふれの場合は1を返す。
+
+int GraphSupport::Import(FILE *fp)
+fpで参照された入力ファイルから、グラフ記述データを読み込み、
+自分自身にロードする。正常終了の場合0を返し、記憶あふれの場合は
+1を返す。入力データの記述例は以下に示す通りで、最初の２行で
+頂点数nと辺数mを指定し、その後のm行に渡って、各辺の両端点の
+頂点番号を並べる。
+-------
+#n 9
+#m 12
+1 4
+1 2
+2 5
+2 3
+3 6
+4 7
+4 5
+5 8
+5 6
+6 9
+7 8
+8 9
+------
+
+int GraphSupport::SetGrid(const int x, const int y)
+横x、縦yの２次元格子グラフを生成し、自分自身にセットする。
+正常終了の場合0を返し、記憶あふれ等の異常終了時は1を返す。
+x, yは0以上の自然数で、頂点の繰り返し数ではなく格子の
+繰り返し数を表す。
+
+void GraphSupport::Print(void) const
+自分自身の内容を標準出力に書き出す。Importメソッドで読み込み
+可能なフォーマットで出力する。
+
+ZBDD SimPaths(const GS_v s, const GS_v t)
+頂点番号sとtを結び同じ頂点を二度通らないパス(Simple Paths)を
+列挙したZBDDを生成し、生成したZBDDオブジェクトを返す。
+記憶あふれ等の異常終了時は-1（NULL）を返す。GS_vは頂点番号を
+格納するデータ型で、8bit charまたは16bit shortである。
+
+ZBDD SimCycles(void)
+同じ頂点を二度通らないサイクル(Simple Cycles)を
+列挙したZBDDを生成し、生成したZBDDオブジェクトを返す。
+記憶あふれ等の異常終了時は-1（NULL）を返す。
+
+int GraphSupport::BDDvarOfEdge(const GS_e ix) const
+辺番号ix に対応するBDD/ZBDDの変数IDを返す。
+辺番号が若い方から順にZBDDの上位に割り当てられている。
+GS_eは辺番号を格納するデータ型で16bit shortである。
+
+GS_e GraphSupport::EdgeOfBDDvar(const int var) const
+BDD/ZBDDの変数ID varに対応する辺番号(0〜_m-1)を返す。
+
+void GraphSupport::FixEdge(const GS_e ix, const char fixcode)
+辺番号ixの辺を必ず使う（または決して使わない）ことを
+SimPaths/SimCycleメソッドを実行する前に設定する。
+使う使わないはfixcodeで指定する。fixcode定数GS_fix0 は、
+その辺を決して使わないこと、fixcode定数GS_fix1 は必ず使う
+ことを表す。各辺のfixcodeの初期値は0で、制約がないことを表す。
+
+void GraphSupport::SetHamilton(const int x)
+SimPaths/SimCycleメソッドを呼び出す際に、すべての頂点に立ち寄るような
+パス/サイクルのみに制限するかどうかを設定する。xが真であれば全ての頂点に
+立ち寄るような辺集合（ハミルトン路/閉路）だけを列挙する。初期値は偽。
+
+void GraphSupport::SetCond(ZBDD f)
+SimPaths/SimCycleメソッドを呼び出す際に、列挙するパス/サイクルが
+満たすべき条件をセットする。ZBDDにより任意の制約条件を組合せ集合
+として記述できる。
+

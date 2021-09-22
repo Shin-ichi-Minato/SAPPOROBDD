@@ -1,0 +1,892 @@
+Terminals which are not used
+
+   UNKNOWN
+
+
+文法
+
+    0 $accept: bn $end
+
+    1 @1: /* 空 */
+
+    2 bn: @1 statements
+
+    3 statements: statements statement
+    4           | statement
+
+    5 statement: SEMICOLON
+    6          | st_network
+    7          | st_order
+    8          | st_variable
+    9          | st_probability
+
+   10 st_order: ORDER LBRACE ordlist RBRACE
+
+   11 ordlist: ordlist ordvar
+   12        | ordvar
+
+   13 ordvar: ID
+
+   14 st_network: NETWORK ID LBRACE RBRACE
+
+   15 @2: /* 空 */
+
+   16 st_variable: VARIABLE ID @2 LBRACE vcommands RBRACE
+
+   17 vcommands: vcommands vcommand
+   18          | vcommand
+
+   19 @3: /* 空 */
+
+   20 vcommand: TYPE DISCRETE LBRACKET ID RBRACKET @3 LBRACE vlist RBRACE SEMICOLON
+
+   21 vlist: vlist value
+   22      | value
+
+   23 value: ID
+
+   24 @4: /* 空 */
+
+   25 @5: /* 空 */
+
+   26 st_probability: PROBABILITY LPAREN ID @4 fanin @5 RPAREN LBRACE cpt RBRACE
+
+   27 fanin: faninlist
+   28      | /* 空 */
+
+   29 faninlist: faninlist faninvar
+   30          | faninvar
+
+   31 faninvar: ID
+
+   32 cpt: plist
+   33    | table
+
+   34 plist: plist pline
+   35      | pline
+
+   36 @6: /* 空 */
+
+   37 pline: LPAREN @6 condlist RPAREN prblist SEMICOLON
+
+   38 @7: /* 空 */
+
+   39 pline: @7 prblist SEMICOLON
+
+   40 condlist: condlist cond
+   41         | cond
+
+   42 cond: ID
+
+   43 prblist: prblist prb
+   44        | prb
+
+   45 prb: ID
+
+   46 @8: /* 空 */
+
+   47 table: TABLE @8 tprblist SEMICOLON
+
+   48 tprblist: tprblist tprb
+   49         | tprb
+
+   50 tprb: ID
+
+
+出現位置の規則による終端
+
+$end (0) 0
+error (256)
+SEMICOLON (258) 5 20 37 39 47
+LBRACE (259) 10 14 16 20 26
+RBRACE (260) 10 14 16 20 26
+LBRACKET (261) 20
+RBRACKET (262) 20
+LPAREN (263) 26 37
+RPAREN (264) 26 37
+NETWORK (265) 14
+VARIABLE (266) 16
+TYPE (267) 20
+DISCRETE (268) 20
+PROBABILITY (269) 26
+TABLE (270) 47
+ORDER (271) 10
+UNKNOWN (272)
+ID (273) 13 14 16 20 23 26 31 42 45 50
+
+
+出現位置の規則による非終端
+
+$accept (19)
+    左辺: 0
+bn (20)
+    左辺: 2, 右辺: 0
+@1 (21)
+    左辺: 1, 右辺: 2
+statements (22)
+    左辺: 3 4, 右辺: 2 3
+statement (23)
+    左辺: 5 6 7 8 9, 右辺: 3 4
+st_order (24)
+    左辺: 10, 右辺: 7
+ordlist (25)
+    左辺: 11 12, 右辺: 10 11
+ordvar (26)
+    左辺: 13, 右辺: 11 12
+st_network (27)
+    左辺: 14, 右辺: 6
+st_variable (28)
+    左辺: 16, 右辺: 8
+@2 (29)
+    左辺: 15, 右辺: 16
+vcommands (30)
+    左辺: 17 18, 右辺: 16 17
+vcommand (31)
+    左辺: 20, 右辺: 17 18
+@3 (32)
+    左辺: 19, 右辺: 20
+vlist (33)
+    左辺: 21 22, 右辺: 20 21
+value (34)
+    左辺: 23, 右辺: 21 22
+st_probability (35)
+    左辺: 26, 右辺: 9
+@4 (36)
+    左辺: 24, 右辺: 26
+@5 (37)
+    左辺: 25, 右辺: 26
+fanin (38)
+    左辺: 27 28, 右辺: 26
+faninlist (39)
+    左辺: 29 30, 右辺: 27 29
+faninvar (40)
+    左辺: 31, 右辺: 29 30
+cpt (41)
+    左辺: 32 33, 右辺: 26
+plist (42)
+    左辺: 34 35, 右辺: 32 34
+pline (43)
+    左辺: 37 39, 右辺: 34 35
+@6 (44)
+    左辺: 36, 右辺: 37
+@7 (45)
+    左辺: 38, 右辺: 39
+condlist (46)
+    左辺: 40 41, 右辺: 37 40
+cond (47)
+    左辺: 42, 右辺: 40 41
+prblist (48)
+    左辺: 43 44, 右辺: 37 39 43
+prb (49)
+    左辺: 45, 右辺: 43 44
+table (50)
+    左辺: 47, 右辺: 33
+@8 (51)
+    左辺: 46, 右辺: 47
+tprblist (52)
+    左辺: 48 49, 右辺: 47 48
+tprb (53)
+    左辺: 50, 右辺: 48 49
+
+
+状態 0
+
+    0 $accept: . bn $end
+
+    $default  reduce using rule 1 (@1)
+
+    bn  go to state 1
+    @1  go to state 2
+
+
+状態 1
+
+    0 $accept: bn . $end
+
+    $end  shift, and go to state 3
+
+
+状態 2
+
+    2 bn: @1 . statements
+
+    SEMICOLON    shift, and go to state 4
+    NETWORK      shift, and go to state 5
+    VARIABLE     shift, and go to state 6
+    PROBABILITY  shift, and go to state 7
+    ORDER        shift, and go to state 8
+
+    statements      go to state 9
+    statement       go to state 10
+    st_order        go to state 11
+    st_network      go to state 12
+    st_variable     go to state 13
+    st_probability  go to state 14
+
+
+状態 3
+
+    0 $accept: bn $end .
+
+    $default  accept
+
+
+状態 4
+
+    5 statement: SEMICOLON .
+
+    $default  reduce using rule 5 (statement)
+
+
+状態 5
+
+   14 st_network: NETWORK . ID LBRACE RBRACE
+
+    ID  shift, and go to state 15
+
+
+状態 6
+
+   16 st_variable: VARIABLE . ID @2 LBRACE vcommands RBRACE
+
+    ID  shift, and go to state 16
+
+
+状態 7
+
+   26 st_probability: PROBABILITY . LPAREN ID @4 fanin @5 RPAREN LBRACE cpt RBRACE
+
+    LPAREN  shift, and go to state 17
+
+
+状態 8
+
+   10 st_order: ORDER . LBRACE ordlist RBRACE
+
+    LBRACE  shift, and go to state 18
+
+
+状態 9
+
+    2 bn: @1 statements .
+    3 statements: statements . statement
+
+    SEMICOLON    shift, and go to state 4
+    NETWORK      shift, and go to state 5
+    VARIABLE     shift, and go to state 6
+    PROBABILITY  shift, and go to state 7
+    ORDER        shift, and go to state 8
+
+    $default  reduce using rule 2 (bn)
+
+    statement       go to state 19
+    st_order        go to state 11
+    st_network      go to state 12
+    st_variable     go to state 13
+    st_probability  go to state 14
+
+
+状態 10
+
+    4 statements: statement .
+
+    $default  reduce using rule 4 (statements)
+
+
+状態 11
+
+    7 statement: st_order .
+
+    $default  reduce using rule 7 (statement)
+
+
+状態 12
+
+    6 statement: st_network .
+
+    $default  reduce using rule 6 (statement)
+
+
+状態 13
+
+    8 statement: st_variable .
+
+    $default  reduce using rule 8 (statement)
+
+
+状態 14
+
+    9 statement: st_probability .
+
+    $default  reduce using rule 9 (statement)
+
+
+状態 15
+
+   14 st_network: NETWORK ID . LBRACE RBRACE
+
+    LBRACE  shift, and go to state 20
+
+
+状態 16
+
+   16 st_variable: VARIABLE ID . @2 LBRACE vcommands RBRACE
+
+    $default  reduce using rule 15 (@2)
+
+    @2  go to state 21
+
+
+状態 17
+
+   26 st_probability: PROBABILITY LPAREN . ID @4 fanin @5 RPAREN LBRACE cpt RBRACE
+
+    ID  shift, and go to state 22
+
+
+状態 18
+
+   10 st_order: ORDER LBRACE . ordlist RBRACE
+
+    ID  shift, and go to state 23
+
+    ordlist  go to state 24
+    ordvar   go to state 25
+
+
+状態 19
+
+    3 statements: statements statement .
+
+    $default  reduce using rule 3 (statements)
+
+
+状態 20
+
+   14 st_network: NETWORK ID LBRACE . RBRACE
+
+    RBRACE  shift, and go to state 26
+
+
+状態 21
+
+   16 st_variable: VARIABLE ID @2 . LBRACE vcommands RBRACE
+
+    LBRACE  shift, and go to state 27
+
+
+状態 22
+
+   26 st_probability: PROBABILITY LPAREN ID . @4 fanin @5 RPAREN LBRACE cpt RBRACE
+
+    $default  reduce using rule 24 (@4)
+
+    @4  go to state 28
+
+
+状態 23
+
+   13 ordvar: ID .
+
+    $default  reduce using rule 13 (ordvar)
+
+
+状態 24
+
+   10 st_order: ORDER LBRACE ordlist . RBRACE
+   11 ordlist: ordlist . ordvar
+
+    RBRACE  shift, and go to state 29
+    ID      shift, and go to state 23
+
+    ordvar  go to state 30
+
+
+状態 25
+
+   12 ordlist: ordvar .
+
+    $default  reduce using rule 12 (ordlist)
+
+
+状態 26
+
+   14 st_network: NETWORK ID LBRACE RBRACE .
+
+    $default  reduce using rule 14 (st_network)
+
+
+状態 27
+
+   16 st_variable: VARIABLE ID @2 LBRACE . vcommands RBRACE
+
+    TYPE  shift, and go to state 31
+
+    vcommands  go to state 32
+    vcommand   go to state 33
+
+
+状態 28
+
+   26 st_probability: PROBABILITY LPAREN ID @4 . fanin @5 RPAREN LBRACE cpt RBRACE
+
+    ID  shift, and go to state 34
+
+    $default  reduce using rule 28 (fanin)
+
+    fanin      go to state 35
+    faninlist  go to state 36
+    faninvar   go to state 37
+
+
+状態 29
+
+   10 st_order: ORDER LBRACE ordlist RBRACE .
+
+    $default  reduce using rule 10 (st_order)
+
+
+状態 30
+
+   11 ordlist: ordlist ordvar .
+
+    $default  reduce using rule 11 (ordlist)
+
+
+状態 31
+
+   20 vcommand: TYPE . DISCRETE LBRACKET ID RBRACKET @3 LBRACE vlist RBRACE SEMICOLON
+
+    DISCRETE  shift, and go to state 38
+
+
+状態 32
+
+   16 st_variable: VARIABLE ID @2 LBRACE vcommands . RBRACE
+   17 vcommands: vcommands . vcommand
+
+    RBRACE  shift, and go to state 39
+    TYPE    shift, and go to state 31
+
+    vcommand  go to state 40
+
+
+状態 33
+
+   18 vcommands: vcommand .
+
+    $default  reduce using rule 18 (vcommands)
+
+
+状態 34
+
+   31 faninvar: ID .
+
+    $default  reduce using rule 31 (faninvar)
+
+
+状態 35
+
+   26 st_probability: PROBABILITY LPAREN ID @4 fanin . @5 RPAREN LBRACE cpt RBRACE
+
+    $default  reduce using rule 25 (@5)
+
+    @5  go to state 41
+
+
+状態 36
+
+   27 fanin: faninlist .
+   29 faninlist: faninlist . faninvar
+
+    ID  shift, and go to state 34
+
+    $default  reduce using rule 27 (fanin)
+
+    faninvar  go to state 42
+
+
+状態 37
+
+   30 faninlist: faninvar .
+
+    $default  reduce using rule 30 (faninlist)
+
+
+状態 38
+
+   20 vcommand: TYPE DISCRETE . LBRACKET ID RBRACKET @3 LBRACE vlist RBRACE SEMICOLON
+
+    LBRACKET  shift, and go to state 43
+
+
+状態 39
+
+   16 st_variable: VARIABLE ID @2 LBRACE vcommands RBRACE .
+
+    $default  reduce using rule 16 (st_variable)
+
+
+状態 40
+
+   17 vcommands: vcommands vcommand .
+
+    $default  reduce using rule 17 (vcommands)
+
+
+状態 41
+
+   26 st_probability: PROBABILITY LPAREN ID @4 fanin @5 . RPAREN LBRACE cpt RBRACE
+
+    RPAREN  shift, and go to state 44
+
+
+状態 42
+
+   29 faninlist: faninlist faninvar .
+
+    $default  reduce using rule 29 (faninlist)
+
+
+状態 43
+
+   20 vcommand: TYPE DISCRETE LBRACKET . ID RBRACKET @3 LBRACE vlist RBRACE SEMICOLON
+
+    ID  shift, and go to state 45
+
+
+状態 44
+
+   26 st_probability: PROBABILITY LPAREN ID @4 fanin @5 RPAREN . LBRACE cpt RBRACE
+
+    LBRACE  shift, and go to state 46
+
+
+状態 45
+
+   20 vcommand: TYPE DISCRETE LBRACKET ID . RBRACKET @3 LBRACE vlist RBRACE SEMICOLON
+
+    RBRACKET  shift, and go to state 47
+
+
+状態 46
+
+   26 st_probability: PROBABILITY LPAREN ID @4 fanin @5 RPAREN LBRACE . cpt RBRACE
+
+    LPAREN  shift, and go to state 48
+    TABLE   shift, and go to state 49
+
+    $default  reduce using rule 38 (@7)
+
+    cpt    go to state 50
+    plist  go to state 51
+    pline  go to state 52
+    @7     go to state 53
+    table  go to state 54
+
+
+状態 47
+
+   20 vcommand: TYPE DISCRETE LBRACKET ID RBRACKET . @3 LBRACE vlist RBRACE SEMICOLON
+
+    $default  reduce using rule 19 (@3)
+
+    @3  go to state 55
+
+
+状態 48
+
+   37 pline: LPAREN . @6 condlist RPAREN prblist SEMICOLON
+
+    $default  reduce using rule 36 (@6)
+
+    @6  go to state 56
+
+
+状態 49
+
+   47 table: TABLE . @8 tprblist SEMICOLON
+
+    $default  reduce using rule 46 (@8)
+
+    @8  go to state 57
+
+
+状態 50
+
+   26 st_probability: PROBABILITY LPAREN ID @4 fanin @5 RPAREN LBRACE cpt . RBRACE
+
+    RBRACE  shift, and go to state 58
+
+
+状態 51
+
+   32 cpt: plist .
+   34 plist: plist . pline
+
+    LPAREN  shift, and go to state 48
+
+    ID        reduce using rule 38 (@7)
+    $default  reduce using rule 32 (cpt)
+
+    pline  go to state 59
+    @7     go to state 53
+
+
+状態 52
+
+   35 plist: pline .
+
+    $default  reduce using rule 35 (plist)
+
+
+状態 53
+
+   39 pline: @7 . prblist SEMICOLON
+
+    ID  shift, and go to state 60
+
+    prblist  go to state 61
+    prb      go to state 62
+
+
+状態 54
+
+   33 cpt: table .
+
+    $default  reduce using rule 33 (cpt)
+
+
+状態 55
+
+   20 vcommand: TYPE DISCRETE LBRACKET ID RBRACKET @3 . LBRACE vlist RBRACE SEMICOLON
+
+    LBRACE  shift, and go to state 63
+
+
+状態 56
+
+   37 pline: LPAREN @6 . condlist RPAREN prblist SEMICOLON
+
+    ID  shift, and go to state 64
+
+    condlist  go to state 65
+    cond      go to state 66
+
+
+状態 57
+
+   47 table: TABLE @8 . tprblist SEMICOLON
+
+    ID  shift, and go to state 67
+
+    tprblist  go to state 68
+    tprb      go to state 69
+
+
+状態 58
+
+   26 st_probability: PROBABILITY LPAREN ID @4 fanin @5 RPAREN LBRACE cpt RBRACE .
+
+    $default  reduce using rule 26 (st_probability)
+
+
+状態 59
+
+   34 plist: plist pline .
+
+    $default  reduce using rule 34 (plist)
+
+
+状態 60
+
+   45 prb: ID .
+
+    $default  reduce using rule 45 (prb)
+
+
+状態 61
+
+   39 pline: @7 prblist . SEMICOLON
+   43 prblist: prblist . prb
+
+    SEMICOLON  shift, and go to state 70
+    ID         shift, and go to state 60
+
+    prb  go to state 71
+
+
+状態 62
+
+   44 prblist: prb .
+
+    $default  reduce using rule 44 (prblist)
+
+
+状態 63
+
+   20 vcommand: TYPE DISCRETE LBRACKET ID RBRACKET @3 LBRACE . vlist RBRACE SEMICOLON
+
+    ID  shift, and go to state 72
+
+    vlist  go to state 73
+    value  go to state 74
+
+
+状態 64
+
+   42 cond: ID .
+
+    $default  reduce using rule 42 (cond)
+
+
+状態 65
+
+   37 pline: LPAREN @6 condlist . RPAREN prblist SEMICOLON
+   40 condlist: condlist . cond
+
+    RPAREN  shift, and go to state 75
+    ID      shift, and go to state 64
+
+    cond  go to state 76
+
+
+状態 66
+
+   41 condlist: cond .
+
+    $default  reduce using rule 41 (condlist)
+
+
+状態 67
+
+   50 tprb: ID .
+
+    $default  reduce using rule 50 (tprb)
+
+
+状態 68
+
+   47 table: TABLE @8 tprblist . SEMICOLON
+   48 tprblist: tprblist . tprb
+
+    SEMICOLON  shift, and go to state 77
+    ID         shift, and go to state 67
+
+    tprb  go to state 78
+
+
+状態 69
+
+   49 tprblist: tprb .
+
+    $default  reduce using rule 49 (tprblist)
+
+
+状態 70
+
+   39 pline: @7 prblist SEMICOLON .
+
+    $default  reduce using rule 39 (pline)
+
+
+状態 71
+
+   43 prblist: prblist prb .
+
+    $default  reduce using rule 43 (prblist)
+
+
+状態 72
+
+   23 value: ID .
+
+    $default  reduce using rule 23 (value)
+
+
+状態 73
+
+   20 vcommand: TYPE DISCRETE LBRACKET ID RBRACKET @3 LBRACE vlist . RBRACE SEMICOLON
+   21 vlist: vlist . value
+
+    RBRACE  shift, and go to state 79
+    ID      shift, and go to state 72
+
+    value  go to state 80
+
+
+状態 74
+
+   22 vlist: value .
+
+    $default  reduce using rule 22 (vlist)
+
+
+状態 75
+
+   37 pline: LPAREN @6 condlist RPAREN . prblist SEMICOLON
+
+    ID  shift, and go to state 60
+
+    prblist  go to state 81
+    prb      go to state 62
+
+
+状態 76
+
+   40 condlist: condlist cond .
+
+    $default  reduce using rule 40 (condlist)
+
+
+状態 77
+
+   47 table: TABLE @8 tprblist SEMICOLON .
+
+    $default  reduce using rule 47 (table)
+
+
+状態 78
+
+   48 tprblist: tprblist tprb .
+
+    $default  reduce using rule 48 (tprblist)
+
+
+状態 79
+
+   20 vcommand: TYPE DISCRETE LBRACKET ID RBRACKET @3 LBRACE vlist RBRACE . SEMICOLON
+
+    SEMICOLON  shift, and go to state 82
+
+
+状態 80
+
+   21 vlist: vlist value .
+
+    $default  reduce using rule 21 (vlist)
+
+
+状態 81
+
+   37 pline: LPAREN @6 condlist RPAREN prblist . SEMICOLON
+   43 prblist: prblist . prb
+
+    SEMICOLON  shift, and go to state 83
+    ID         shift, and go to state 60
+
+    prb  go to state 71
+
+
+状態 82
+
+   20 vcommand: TYPE DISCRETE LBRACKET ID RBRACKET @3 LBRACE vlist RBRACE SEMICOLON .
+
+    $default  reduce using rule 20 (vcommand)
+
+
+状態 83
+
+   37 pline: LPAREN @6 condlist RPAREN prblist SEMICOLON .
+
+    $default  reduce using rule 37 (pline)

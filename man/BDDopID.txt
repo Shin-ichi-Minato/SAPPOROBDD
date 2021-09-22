@@ -1,0 +1,11 @@
+1-19	BDDc
+20-29   ZBDD
+30-39   SOP
+40-49   CtoI
+50-59   VSOP, BemII, and other apps.
+60-64   BDD+
+65-69   ZBDD+
+70-79   SeqBDD
+80-89   PiDD
+
+

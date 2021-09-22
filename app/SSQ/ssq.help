@@ -1,0 +1,89 @@
+less << @EOF
+#### SSQ - manipulator for Sets of SeQuences (v0.1) Help Document ####
+
+<Name convention>
+
+[a-z][a-zA-z0-9_]*     Symbol (up to 65500 symbols).
+[A-Z][a-zA-z0-9_]*     Program variable for a set of sequences.
+0                      Empty Set.
+1                      Singleton Set. (a null sequence)
+
+<Commands>
+
+symbol a b c ...       Defines the symbols.
+symbol                 Lists all the symbols.
+F = <expr>             Defines a set of sequences as <expr>.
+print <expr>           Displays the set of sequences for <expr>.
+print <option> <expr>  Displays the set of sequences for <expr>
+			 in the format specified by <option>.
+print "<string>"       Echos <string>.
+? <expr>               (same as print command)
+? <option> <expr>      (same as print command)
+? "<string>"           (same as print command)
+source <file>          Executes the commands in <file>.
+help                   Displays this document.
+?                      Displays this document.
+exit                   Exits the program.
+quit                   Exits the program.
+
+<Expression> (and their priority: the upper is the more prior.)
+
+(<expr>)                  Parentheses show priority. 
+<expr1> <expr2>           Cross Product. (concatenations of all pairs)
+<expr1> / <expr2>         Quotient of division.
+<expr1> % <expr2>         Remainder of division.
+<expr1> & <expr2>         Intersection.
+<expr1> + <expr2>         Union.
+<expr1> - <expr2>         Difference set.
+
+<Options in print command>
+
+/size        Shows the size of the SeqBDD.
+/card        Shows the number of sequences in the set.
+/lit         Shows the total number of literals in the set.
+/depth       Shows the maximum depth of the SeqBDD.
+/export      Exports the structure of the SeqBDD.
+/export "<filename>"
+             Exports the structure of the SeqBDD to the file.
+
+<Special characters>
+
+# ... Comment out 1 line.
+; ... multiple statements on 1 line.
+\ ... Escape of "return". 
+
+<Examples>
+
+% ssq
+***** SSQ - manipulator for Sets of SeQuences (v0.1) *****
+ssq> symbol a b c d
+ssq> F = (a b + c)(b d + 1)
+ssq> print F
+ a b + a b b d + c + c b d
+ssq> print /card F
+ 4
+ssq> print /lit F
+ 10
+ssq> print /size F
+ 5 (5)
+ssq> G = (a b + d)(b d + a c)
+ssq> print G
+ a b a c + a b b d + d a c + d b d
+ssq> print F + G
+ a b + a b a c + a b b d + c + c b d + d a c + d b d
+ssq> print F & G
+ a b b d
+ssq> print F - G
+ a b + c + c b d
+ssq> print G / a b
+ a c + b d
+ssq> print G % a b
+ d a c + d b d
+ssq> print G / (a b + d)
+ a c + b d
+ssq> print G % (a b + d)
+ 0
+ssq> quit
+
+%
+@EOF

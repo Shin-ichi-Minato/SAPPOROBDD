@@ -1,0 +1,416 @@
+%{
+// SSQ Parser(Yacc) (v0.1)
+// Shin-ichi MINATO (May 17, 2015)
+
+#define YYMAXDEPTH 1000
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include "SeqBDD.h"
+#include "ssq.h"
+
+#ifdef B_64
+#  define B_STRTOI strtoll
+#  define B_ITOSTR(n, s) sprintf(s, "%lld", n)
+#else
+#  define B_STRTOI strtol
+#  define B_ITOSTR(n, s) sprintf(s, "%d", n)
+#endif
+
+using namespace std;
+
+extern int    yylineno;
+extern char*  yytext;
+extern FILE*  yyin;
+extern int    yywrap();
+extern int    yylex();
+
+extern "C"
+{
+  extern int system(const char*);
+  extern int isatty(int);
+}
+
+void yyerror(const char* s)
+{
+  cerr << s << " in line " << yylineno << ".\n";
+  cerr.flush();
+}
+
+int yywrap() { return(1); }
+
+const int power30 = 1 << 30;
+
+int main(int argc, char** argv)
+{
+  char* src = 0;
+  char* opt;
+
+  if(argc == 1) opt = 0;
+  else
+  {
+    opt = argv[1];
+    if(opt[0] != '-'){ src = opt; opt = 0; }
+    else if(argc > 2) src = argv[2];
+  }
+
+  if(src != 0 && (yyin = fopen(src, "r")) == 0)
+  {
+    fprintf(stderr, "can't open the file: %s.\\n", src);
+    return 1;
+  }
+
+  bddword nmax;
+  if(opt == 0) nmax = NDEF;
+  else nmax = B_STRTOI(opt+1, NULL, 10);
+
+  BDD_Init(256, nmax);
+
+  if(src == 0 && isatty(0) == 1)
+  {
+    cerr << "***** SSQ - manipulator for Sets of SeQuences (v0.1) *****\n"; 
+    cerr << PROMPT; 
+    cerr.flush();
+  }
+  
+  yyparse();
+  exit(0);
+}
+
+struct OV
+{
+  char _ovf;
+
+  OV(void) { _ovf = 0; }
+  void Set(void) { _ovf = 1; }
+  char Check(void)
+  {
+    char a = _ovf;
+    _ovf = 0;
+    return a;
+  }
+} OVF;
+
+
+%}
+%union{
+  struct
+  {
+    char* str;
+    int len;
+  } name;
+  SeqBDD* seqbdd;
+}
+
+%left PLUS MINUS
+%left AND
+%left QUOTIENT REMAINDER
+%left LPAREN IDFUNC IDVAR 
+
+%start ssq
+
+%token SEMICOLON RETURN SYMBOL PRINT EXIT HELP QUESTION
+%token COMMA ASSIGN AND 
+%token PLUS MINUS QUOTIENT REMAINDER
+%token COLON LPAREN RPAREN
+%token UNKNOWN
+%token<name> IDVAR IDFUNC FNAME NUMBER
+
+%type<seqbdd> expr u_expr 
+%%
+
+ssq
+  : lines last
+    { if(yyin == stdin) cerr << "\n"; return(1); }
+;
+
+last
+  : EXIT RETURN
+  | /* empty */
+  ;
+
+lines
+  : lines commands RETURN
+    {
+      if(yyin == stdin && isatty(0) == 1)
+      {
+        cerr << PROMPT;
+        cerr.flush();
+      }
+    }
+  | lines error RETURN
+    {
+      yyerrok;
+      if(yyin == stdin && isatty(0) == 1)
+      {
+        cerr << PROMPT;
+        cerr.flush();
+      }
+    }
+  | /* empty */
+  ;
+
+commands
+  : commands SEMICOLON command
+  | command
+  ;
+
+command
+  : /* empty */
+  | define
+  | assign
+  | output
+  | help
+    {
+      system(DOCUMENT);
+    }
+  ;
+
+define
+  : SYMBOL symbols
+  | SYMBOL
+    {
+      int n = VTable.Used();
+      bout << " ";
+      for(int i=1; i<=n; i++)
+      {
+        bout << VTable.GetName(i);
+        bout.Delimit();
+      }
+      bout.Return();
+    }
+  ;
+
+symbols
+  : symbols comma symbol
+  | symbol
+  ;
+
+symbol
+  : IDVAR
+    {
+      int id = VTable.GetVarID($1.str);
+      if(id != 0)
+      {
+	char s[256];
+	sprintf(s, "<WARNING> Duplicated symbol '%s' declared", $1.str);
+        yyerror(s);
+      }
+      else
+	VTable.SetB($1.str, 1);
+      delete[] $1.str;
+    }
+  ;
+
+comma
+  : COMMA
+  | /* empty */
+  ;
+
+assign
+  : IDFUNC ASSIGN expr
+    {
+      if(*$3 == SeqBDD(-1))
+      {
+        yyerror("<WARNING> Memory overflow");
+        *$3 = SeqBDD(0);
+      }
+      FTable.Set($1.str, *$3);
+      delete[] $1.str;
+      delete $3;
+    }
+  ;
+
+u_expr
+  : LPAREN expr RPAREN
+    { $$ = $2; }
+  | IDVAR
+    {
+      int var  = VTable.GetVarID($1.str);
+      if(var == 0)
+      {
+        VTable.SetB($1.str, 1);
+        char s[256];
+        sprintf(s, "<WARNING> Undeclared symbol '%s' added at the top", $1.str);        yyerror(s);
+        var  = VTable.GetVarID($1.str);
+      }
+      SeqBDD a = SeqBDD(1).Push(var);
+      $$ = new SeqBDD(a);
+      delete[] $1.str;
+    }
+  | IDFUNC
+    {
+      SeqBDD v = FTable.GetSeqBDD($1.str);
+      if(v == SeqBDD(-1))
+      {
+        yyerror("<WARNING> Undefined variable appeared");
+        v = 0;
+        FTable.Set($1.str, v);
+      }
+      $$ = new SeqBDD(v);
+      delete[] $1.str;
+    }
+  | NUMBER
+    {
+      $$ = new SeqBDD(atoi($1.str)? 1: 0);
+      delete[] $1.str;
+    }
+  ;
+
+expr
+  : u_expr
+    { $$ = $1; }
+  | u_expr expr %prec PLUS
+    {
+      *$1 = (*$1) * (*$2);
+      $$ = $1;
+      delete $2;
+    }
+  | expr PLUS expr
+    {
+      *$1 = *$1 + *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expr MINUS expr
+    {
+      *$1 = *$1 - *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expr QUOTIENT expr
+    {
+      if(*$3 == 0)
+      {
+        yyerror("<WARNING> Divide by zero");
+        *$1 = 0;
+      }
+      else *$1 = *$1 / *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expr REMAINDER expr
+    {
+      if(*$3 == 0)
+      {
+        yyerror("<WARNING> Divide by zero");
+        *$1 = 0;
+      }
+      else *$1 = *$1 % *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expr AND expr
+    {
+      *$1 = *$1 & *$3;
+      $$ = $1;
+      delete $3;
+    }
+  ;
+
+output
+  : print expr
+    {
+    if(*$2 == SeqBDD(-1))
+    {
+      yyerror("<WARNING> Memory overflow");
+      *$2 = SeqBDD(0);
+    }
+    ssqprint(*$2);
+    delete $2;
+    }
+  | print QUOTIENT IDVAR expr
+    {
+      if(*$4 == SeqBDD(-1))
+      {
+        yyerror("<WARNING> Memory overflow");
+        *$4 = SeqBDD(0);
+      }
+      if(strcmp($3.str, "size") == 0)
+      {
+        char a[32];
+	B_ITOSTR($4 -> Size(), a);
+        bout << " " << a;
+        BDD_GC();
+	B_ITOSTR(BDD_Used(), a);
+        bout << " (" << a << ")";
+        bout.Return();
+        delete $4;
+      }
+      else if(strcmp($3.str, "card") == 0)
+      {
+        char a[32];
+	B_ITOSTR($4 -> Card(), a);
+        bout << " " << a;
+        bout.Return();
+        delete $4;
+      }
+      else if(strcmp($3.str, "lit") == 0)
+      {
+        char a[32];
+	B_ITOSTR($4 -> Lit(), a);
+        bout << " " << a;
+        bout.Return();
+        delete $4;
+      }
+      else if(strcmp($3.str, "depth") == 0)
+      {
+        char a[32];
+	B_ITOSTR($4 -> Len(), a);
+        bout << " " << a;
+        bout.Return();
+        delete $4;
+      }
+      else if(strcmp($3.str, "export") == 0)
+      {
+        $4 -> GetZBDD().Export();
+        delete $4;
+      }
+      else
+      {
+        yyerror("Illegal switch");
+        delete $4;
+      }
+      delete[] $3.str;
+    }
+  | print QUOTIENT IDVAR FNAME expr
+    {
+      if(strcmp($3.str, "export") == 0)
+      {
+        $4.str[$4.len - 1] = 0;
+        FILE *fp;
+        fp = fopen($4.str+1, "w");
+        if(fp == NULL) yyerror("Can't open the file");
+	else $5 -> GetZBDD().Export(fp);
+	fclose(fp);
+      }
+      else
+      {
+        yyerror("Illegal switch");
+      }
+      delete[] $3.str;
+      delete[] $4.str;
+      delete $5;
+    }
+  ;
+  | print FNAME
+    {
+      $2.str[$2.len - 1] = 0;
+      cout << $2.str+1 << "\n";
+      cout.flush();
+      delete[] $2.str;
+    }
+  ;
+
+print
+  : PRINT
+  | QUESTION
+  ;
+
+help
+  : HELP
+  | QUESTION
+  ;
+%%
+

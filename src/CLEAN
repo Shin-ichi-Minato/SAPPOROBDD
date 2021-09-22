@@ -1,0 +1,10 @@
+cd BDDc
+make clean
+cd ../BDDXc
+make clean
+cd ../BDDLCM
+make clean
+cd ../BDD+
+make clean
+cd ..
+

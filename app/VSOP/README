@@ -1,0 +1,10 @@
+VSOP (Valued Sum-Of-Products) Calculator
+
+Command syntax:
+ vsop [-BDDsize] [filename]
+
+vsop         sparc executable file.
+vsop.help    help text file referred by bemII.
+vsop.man     program manual (in Japanese).
+COPYRIGHT    copyright form
+README       this file.

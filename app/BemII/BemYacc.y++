@@ -1,0 +1,935 @@
+%{
+// BEM-II Parser(Yacc) (SAPPORO-1.30)
+// Shin-ichi MINATO (Sep. 16, 2015)
+
+#define YYMAXDEPTH 1000
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include "BtoI.h"
+#include "BDDDG.h"
+#include "bemII.h"
+
+#ifdef B_64
+#  define B_STRTOI strtoll
+#  define B_ITOSTR(n, s) sprintf(s, "%lld", n)
+#else
+#  define B_STRTOI strtol
+#  define B_ITOSTR(n, s) sprintf(s, "%d", n)
+#endif
+
+using namespace std;
+
+extern int    yylineno;
+extern char*  yytext;
+extern FILE*  yyin;
+extern int    yywrap();
+extern int    yylex();
+
+extern "C"
+{
+  extern int system(const char*);
+  extern int isatty(int);
+}
+
+//----------------- operation cache --------------------
+static const int BC_BEMII_MINCOST = 50;
+static const int BC_BEMII_DENSITY = 51;
+static const int BC_BEMII_COUNT = 52;
+static const int power30 = 1 << 30;
+
+#define BEMII_CACHE_CHK_RETURN(op, fx, gx) \
+  { bddword c = BDD_CacheInt(op, fx, gx); \
+    if(c <= power30) return c; \
+    BDD_RECUR_INC; }
+
+#define BEMII_CACHE_ENT_RETURN(op, fx, gx, c) \
+  { BDD_RECUR_DEC; \
+    if(c <= power30) BDD_CacheEnt(op, fx, gx, c); \
+    return c; }
+//------------------------------------------------------
+
+void yyerror(const char* s)
+{
+  cerr << s << " in line " << yylineno << ".\n";
+  cerr.flush();
+}
+
+int yywrap() { return(1); }
+
+int VarOrdTop;
+
+int main(int argc, char** argv)
+{
+  char* src = 0;
+  char* opt;
+
+  if(argc == 1) opt = 0;
+  else
+  {
+    opt = argv[1];
+    if(opt[0] != '-'){ src = opt; opt = 0; }
+    else if(argc > 2) src = argv[2];
+  }
+
+  if(src != 0 && (yyin = fopen(src, "r")) == 0)
+  {
+    fprintf(stderr, "can't open the file: %s.\\n", src);
+    return 1;
+  }
+
+  bddword nmax;
+  if(opt == 0) nmax = NDEF;
+  else nmax = B_STRTOI(opt+1, NULL, 10);
+
+  BDDV_Init(256, nmax);
+
+  if(src == 0 && isatty(0) == 1)
+  {
+    cerr << "***** BEM-II Sapporo edition (v1.30) *****\n"; 
+    cerr << PROMPT; 
+    cerr.flush();
+  }
+  
+  VarOrdTop = 0;
+
+  yyparse();
+  exit(0);
+}
+
+struct OV
+{
+  char _ovf;
+
+  OV(void) { _ovf = 0; }
+  void Set(void) { _ovf = 1; }
+  char Check(void)
+  {
+    char a = _ovf;
+    _ovf = 0;
+    return a;
+  }
+} OVF;
+
+static bddword MinCost(BDD f);
+bddword MinCost(BDD f)
+{
+  if(f == -1) return 0;
+  if(f == 0) return power30;
+  if(f == 1) return 0;
+
+  bddword fx = f.GetID();
+  BEMII_CACHE_CHK_RETURN(BC_BEMII_MINCOST, fx, 0);
+
+  int var = f.Top();
+  bddword cost0 = MinCost(f.At0(var));
+  bddword cost1 = MinCost(f.At1(var))
+                + VTable.GetCost(var);
+  bddword cost = (cost0 > cost1)? cost1: cost0;
+
+  BEMII_CACHE_ENT_RETURN(BC_BEMII_MINCOST, fx, 0, cost);
+  return cost;
+}
+
+static bddword Density(BDD);
+bddword Density(BDD f)
+{
+  if(f == -1) return 0;
+  if(f == 0) return 0;
+  if(f == 1) return power30;
+
+  bddword fx = f.GetID();
+  BEMII_CACHE_CHK_RETURN(BC_BEMII_DENSITY, fx, 0);
+
+  int var = f.Top();
+  bddword dense = (Density(f.At0(var)) >> 1)
+        + (Density(f.At1(var)) >> 1);
+
+  BEMII_CACHE_ENT_RETURN(BC_BEMII_DENSITY, fx, 0, dense);
+}
+
+static bddword Count(BDD, int);
+bddword Count(BDD f, int tlev)
+{
+  if(f == -1) return 0;
+  if(f == 0) return 0;
+
+  int var = f.Top();
+  int lev = BDD_LevOfVar(var);
+  bddword c;
+  if(f == 1) c = 1;
+  else
+  {
+    bddword fx = f.GetID();
+    c = BDD_CacheInt(BC_BEMII_COUNT, fx, 0);
+    if(c > power30)
+    {
+      BDD_RECUR_INC;
+      c = Count(f.At0(var), lev-1) + Count(f.At1(var), lev-1);
+      BDD_RECUR_DEC;
+      if(c < 0) OVF.Set();
+      BDD_CacheEnt(BC_BEMII_COUNT, fx, 0, c);
+    }
+  }
+
+  for(int i=1; i<=tlev-lev; i++)
+    if((c <<= 1) < 0) OVF.Set();
+  return c;
+}
+
+%}
+%union{
+  struct
+  {
+    char* str;
+    int len;
+  } name;
+  BtoI* btoi;
+}
+
+%right QUESTION COLON
+%left OR
+%left XOR
+%left AND
+%left EQ NEQ
+%left GT GEQ LT LEQ
+%left LSHIFT RSHIFT
+%left PLUS MINUS
+%left MULTIPLY QUOTIENT REMAINDER
+%left LBRACKET
+
+%start bem
+
+%token SEMICOLON RETURN SYMBOL PRINT EXIT HELP
+%token UPPERBOUND LOWERBOUND IMPORT SPREAD
+%token COMMA ASSIGN AND OR XOR LSHIFT RSHIFT INVERT NOT
+%token PLUS MINUS MULTIPLY EQ NEQ GT GEQ LT LEQ
+%token QUESTION COLON LBRACKET RBRACKET LPAREN RPAREN
+%token UNKNOWN
+%token<name> IDVAR IDFUNC FNAME NUMBER
+
+%type<btoi> expression symlist sym0
+%%
+
+bem
+  : lines last
+    { if(yyin == stdin) cerr << "\n"; return(1); }
+  ;
+
+last
+  : EXIT RETURN
+  | /* empty */
+  ;
+
+lines
+  : lines commands RETURN
+    {
+      if(yyin == stdin && isatty(0) == 1)
+      {
+        cerr << PROMPT;
+        cerr.flush();
+      }
+    }
+  | lines error RETURN
+    {
+      yyerrok;
+      if(yyin == stdin && isatty(0) == 1)
+      {
+        cerr << PROMPT;
+        cerr.flush();
+      }
+    }
+  | /* empty */
+  ;
+
+commands
+  : commands SEMICOLON command
+  | command
+  ;
+
+command
+  : /* empty */
+  | define
+  | assign
+  | output
+  | help
+    {
+      system(DOCUMENT);
+    }
+  ;
+
+define
+  : SYMBOL symbols
+  | SYMBOL
+    {
+      int n = VTable.Used();
+      for(int i=n; i>0; i--)
+      {
+	int var = BDD_VarOfLev(i);
+        bout << VTable.GetName(var);
+        bout.Delimit();
+      }
+      bout.Return();
+    }
+  | SYMBOL QUOTIENT IDVAR
+    {
+      if(strcmp($3.str, "v") == 0)
+      {
+        int n = VTable.Used();
+        for(int i=n; i>0; i--)
+        {
+	  int var = BDD_VarOfLev(i);
+          bout << VTable.GetName(var) << "(";
+          char s[32];
+          sprintf(s, "%d", VTable.GetCost(var));
+          bout << s << ")";
+          bout.Delimit();
+        }
+        bout.Return();
+      }
+      else if(strcmp($3.str, "t") == 0)
+      {
+        VarOrdTop = 1;
+	cerr << "(a new symbol will be added at the top.)" << "\n";
+      }
+      else if(strcmp($3.str, "b") == 0)
+      {
+        VarOrdTop = 0;
+	cerr << "(a new symbol will be added at the bottom.)" << "\n";
+      }
+      else
+      {
+        yyerror("Illegal switch");
+      }
+      delete[] $3.str;
+    }
+  ;
+
+symbols
+  : symbols comma symbol
+  | symbol
+  ;
+
+symbol
+  : IDVAR
+    {
+      int id = VTable.GetVarID($1.str);
+      if(id != 0)
+      {
+	char s[256];
+	sprintf(s, "<WARNING> Duplicated symbol '%s' declared", $1.str);
+        yyerror(s);
+      }
+      else
+      {
+	if(VarOrdTop) VTable.SetT($1.str, 1);
+	else VTable.SetB($1.str, 1);
+      }
+      delete[] $1.str;
+    }
+  | IDVAR LPAREN NUMBER RPAREN
+    {
+      int id = VTable.GetVarID($1.str);
+      if(id != 0)
+      {
+	char s[256];
+	sprintf(s, "<WARNING> Duplicated symbol '%s' declared", $1.str);
+        yyerror(s);
+      }
+      else
+      {
+	if(VarOrdTop)
+	  VTable.SetT($1.str, (bddword)BtoI_atoi($3.str).GetInt());
+	else
+	  VTable.SetB($1.str, (bddword)BtoI_atoi($3.str).GetInt());
+      }
+      delete[] $1.str;
+    }
+  ;
+
+comma
+  : COMMA
+  | /* empty */
+  ;
+
+assign
+  : IDFUNC ASSIGN expression
+    {
+      if(*$3 == BtoI(BDD(-1)))
+      {
+        yyerror("<WARNING> Memory overflow");
+        *$3 = BtoI(0);
+      }
+      FTable.Set($1.str, *$3);
+      delete[] $1.str;
+      delete $3;
+    }
+  ;
+
+expression
+  : LPAREN expression RPAREN
+    { $$ = $2;}
+  | IDFUNC
+    {
+      BtoI v = FTable.GetBtoI($1.str);
+      if(v == BtoI(BDD(-1)))
+      {
+        yyerror("<WARNING> Undefined variable appeared");
+        v = 0;
+        FTable.Set($1.str, v);
+      }
+      $$ = new BtoI(v);
+      delete[] $1.str;
+    }
+  | IDVAR
+    {
+      int var  = VTable.GetVarID($1.str);
+      if(var == 0)
+      {
+	if(VarOrdTop)
+	{
+	  VTable.SetT($1.str, 1);
+	  char s[256];
+	  sprintf(s, "<WARNING> Undeclared symbol '%s' added at the top", $1.str);
+          yyerror(s);
+	}
+	else
+	{
+	  VTable.SetB($1.str, 1);
+	  char s[256];
+	  sprintf(s, "<WARNING> Undeclared symbol '%s' added at the bottom", $1.str);
+          yyerror(s);
+	}
+        var  = VTable.GetVarID($1.str);
+      }
+      $$ = new BtoI(BDDvar(var));
+      delete[] $1.str;
+    }
+  | NUMBER
+    {
+      $$ = new BtoI(BtoI_atoi($1.str));
+      delete[] $1.str;
+    }
+  | expression LBRACKET expression RBRACKET
+    {
+      *$1 = $1 -> Cofact(*$3);
+      $$ = $1;
+      delete $3;
+    }
+  | expression QUESTION expression COLON expression
+    {
+      *$1 = BtoI_ITE(*$1, *$3, *$5);
+      $$ = $1;
+      delete $3;
+      delete $5;
+    }
+  | expression PLUS expression
+    {
+      *$1 = *$1 + *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expression MINUS expression
+    {
+      *$1 = *$1 - *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expression MULTIPLY expression
+    {
+      *$1 = (*$1) * (*$3);
+      $$ = $1;
+      delete $3;
+    }
+  | expression QUOTIENT expression
+    {
+      BtoI zero = BtoI_EQ(*$3, 0);
+      if(zero != 0)
+      {
+        *$3 = BtoI_ITE(zero, 1, *$3);
+        yyerror("<WARNING> Divided by zero");
+      }
+      *$1 = *$1 / *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expression REMAINDER expression
+    {
+      BtoI zero = BtoI_EQ(*$3, 0);
+      if(zero != 0)
+      {
+        *$3 = BtoI_ITE(zero, 1, *$3);
+        yyerror("<WARNING> Divided by zero");
+      }
+      *$1 = *$1 % *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expression AND expression
+    {
+      *$1 = *$1 & *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expression OR expression
+    {
+      *$1 = *$1 | *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expression XOR expression
+    {
+      *$1 = *$1 ^ *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expression EQ expression
+    {
+      *$1 = BtoI_EQ(*$1, *$3);
+      $$ = $1;
+      delete $3;
+    }
+  | expression NEQ expression
+    {
+      *$1 = BtoI_NE(*$1, *$3);
+      $$ = $1;
+      delete $3;
+    }
+  | expression GT expression
+    {
+      *$1 = BtoI_GT(*$1, *$3);
+      $$ = $1;
+      delete $3;
+    }
+  | expression GEQ expression
+    {
+      *$1 = BtoI_GE(*$1, *$3);
+      $$ = $1;
+      delete $3;
+    }
+  | expression LT expression
+    {
+      *$1 = BtoI_LT(*$1, *$3);
+      $$ = $1;
+      delete $3;
+    }
+  | expression LEQ expression
+    {
+      *$1 = BtoI_LE(*$1, *$3);
+      $$ = $1;
+      delete $3;
+    }
+  | expression LSHIFT expression
+    {
+      *$1 = *$1 << *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | expression RSHIFT expression
+    {
+      *$1 = *$1 >> *$3;
+      $$ = $1;
+      delete $3;
+    }
+  | INVERT expression %prec MULTIPLY
+    {
+      *$2 = ~*$2;
+      $$ = $2;
+      }
+  | NOT expression %prec MULTIPLY
+    {
+      *$2 = !*$2;
+      $$ = $2;
+    }
+  | MINUS expression %prec MULTIPLY
+    {
+      *$2 = -*$2;
+      $$ = $2;
+    }
+  | PLUS expression %prec MULTIPLY
+    {
+      $$ = $2;
+    }
+  | UPPERBOUND LPAREN expression RPAREN
+    {
+      *$3 = $3 -> UpperBound();
+      $$ = $3;
+    }
+  | UPPERBOUND LPAREN expression COLON symlist RPAREN
+    {
+      *$3 = $3 -> UpperBound($5 -> GetBDD(0));
+      $$ = $3;
+      delete $5;
+    }
+  | LOWERBOUND LPAREN expression RPAREN
+    {
+      *$3 = $3 -> LowerBound();
+      $$ = $3;
+    }
+  | LOWERBOUND LPAREN expression COLON symlist RPAREN
+    {
+      *$3 = $3 -> LowerBound($5 -> GetBDD(0));
+      $$ = $3;
+      delete $5;
+    }
+  | SPREAD LPAREN expression RPAREN
+    {
+      *$3 = $3 -> Spread(1);
+      $$ = $3;
+    }
+  | SPREAD LPAREN expression COMMA NUMBER RPAREN
+    {
+      *$3 = $3 -> Spread(atoi($5.str));
+      $$ = $3;
+      delete[] $5.str;
+    }
+  | IMPORT LPAREN FNAME RPAREN
+    {
+      $3.str[$3.len - 1] = 0;
+      FILE *fp;
+      fp = fopen($3.str+1, "r");
+      if(fp == NULL)
+      {
+        yyerror("Can't open the file");
+	$$ = new BtoI(BDD(0));
+      }
+      else
+      {
+	BDDV v = BDDV_Import(fp);
+	fclose(fp);
+	if(v != BDDV(-1))
+	{
+	  int t = 1;
+	  char s[32];
+	  while(BDD_LevOfVar(v.Top()) > VTable.Used())
+	  {
+	    sprintf(s, "x%d", t);
+	    while(VTable.GetVarID(s) != 0)
+	    {
+	      t++;
+	      sprintf(s, "x%d", t);
+	    }
+	    VTable.SetT0(BDD_VarOfLev(t), s);
+	  }
+          $$ = new BtoI(v);
+	}
+	else
+	{
+          yyerror("<WARNING> import error");
+	  $$ = new BtoI(BDD(0));
+	}
+      }
+      delete[] $3.str;
+    }
+  ;
+
+symlist
+  : symlist comma sym0
+    {
+      *$$ |= *$3;
+    }
+  | sym0
+    {
+      *$$ = *$1;
+    }
+  ;
+
+sym0
+  : IDVAR
+    {
+      int var  = VTable.GetVarID($1.str);
+      if(var == 0)
+      {
+	if(VarOrdTop)
+	{
+          yyerror("<WARNING> Undefined symbol (added at the top)");
+          VTable.SetT($1.str, 1);
+	}
+	else
+	{
+          yyerror("<WARNING> Undefined symbol (added at the bottom)");
+          VTable.SetB($1.str, 1);
+	}
+        var  = VTable.GetVarID($1.str);
+      }
+      $$ = new BtoI(BDDvar(var));
+      delete[] $1.str;
+    }
+  ;
+
+output
+  : print expression
+    {
+    if(*$2 == BtoI(BDD(-1)))
+    {
+      yyerror("<WARNING> Memory overflow");
+      *$2 = BtoI(0);
+    }
+    if(PutList(*$2, 1, 10) == 1)
+    {
+      bout << "...";
+      bout.Return();
+      yyerror("<WARNING> Memory overflow");
+    }
+    delete $2;
+    }
+  | print QUOTIENT IDVAR expression
+    {
+      if(*$4 == BtoI(BDD(-1)))
+      {
+        yyerror("<WARNING> Memory overflow");
+        *$4 = BtoI(0);
+      }
+      if(strcmp($3.str, "hex") == 0)
+      {
+  	if(PutList(*$4, 1, 16) == 1)
+  	{
+          bout << "...";
+          bout.Return();
+          yyerror("<WARNING> Memory overflow");
+        }
+        delete $4;
+      }
+      else if(strcmp($3.str, "bit") == 0)
+      {
+        if(PutList(*$4, 0, 0) == 1)
+        {
+          bout << "...";
+          bout.Return();
+          yyerror("<WARNING> Memory overflow");
+        }
+        delete $4;
+      }
+      else if(strcmp($3.str, "map") == 0)
+      {
+        if(MapAll(*$4, 10) == 1)
+        {
+          bout << "...";
+          bout.Return();
+          yyerror("<WARNING> Memory overflow");
+        }
+        delete $4;
+      }
+      else if(strcmp($3.str, "rmap") == 0)
+      {
+        if(MapSel(*$4, 10) == 1)
+        {
+          bout << "...";
+          bout.Return();
+          yyerror("<WARNING> Memory overflow");
+        }
+        delete $4;
+      }
+      else if(strcmp($3.str, "asop") == 0)
+      {
+        if(PutASOP(*$4) == 1)
+        {
+          bout << "...";
+          bout.Return();
+          yyerror("<WARNING> Memory overflow");
+        }
+        delete $4;
+      }
+      else if(strcmp($3.str, "case") == 0)
+      {
+        if(PutCase(*$4, 10) == 1)
+        {
+          bout << "...";
+          bout.Return();
+          yyerror("<WARNING> Memory overflow");
+        }
+        delete $4;
+      }
+      else if(strcmp($3.str, "size") == 0)
+      {
+        char a[32];
+	B_ITOSTR($4 -> Size(), a);
+        bout << " " << a;
+        BDD_GC();
+	B_ITOSTR(BDD_Used(), a);
+        bout << " (" << a << ")";
+        bout.Return();
+        delete $4;
+      }
+      else if(strcmp($3.str, "density") == 0)
+      {
+        BDD f = BtoI_NE(*$4, 0).GetBDD(0);
+        if(f == -1)
+        {
+          yyerror("<WARNING> Memory overflow");
+          f = 0;
+        }
+        char a[32];
+        sprintf(a, " %g", (float)Density(f)/power30);
+        if(OVF.Check()!= 0)
+           yyerror("<WARNING> Overflow occurred");
+        bout << a;
+        bout.Return();
+        delete $4;
+      }
+      else if(strcmp($3.str, "count") == 0)
+      {
+        BDD f = BtoI_NE(*$4, 0).GetBDD(0);
+        if(f == -1)
+        {
+          yyerror("<WARNING> Memory overflow");
+          f = 0;
+        }
+        char a[32];
+        sprintf(a, " %d", Count(f, VTable.Used()));
+        if(OVF.Check()!= 0)
+          yyerror("<WARNING> Overflow occurred");
+        bout << a;
+        bout.Return();
+        delete $4;
+      }
+      else if(strcmp($3.str, "mincover") == 0)
+      {
+        BDD f = BtoI_NE(*$4, 0).GetBDD(0);
+        if(f == -1)
+        {
+          yyerror("<WARNING> Memory overflow");
+          f = 0;
+        }
+        if(f == 0) bout << "<No covers.>";
+        else
+        {
+          if(MinCost(f)== 0)
+      	    bout << "<All negative.>";
+          else
+          {
+       	    bout << "<Positive>: ";
+       	    for(int i=0; i<VTable.Used(); i++)
+            {
+	      int var = i + BDDV_SysVarTop + 1;
+              if(BDD_LevOfVar(var) > BDD_LevOfVar(f.Top()))
+	        continue;
+              BDD f0 = f.At0(var);
+              BDD f1 = f.At1(var);
+              int cost1 = MinCost(f1) + VTable.GetCost(var);
+   	      if(MinCost(f0) > cost1)
+              {
+                bout << VTable.GetName(var);
+                bout.Delimit();
+                f = f1;
+              }
+              else f = f0;
+      	    }
+          }
+        }
+        bout.Return();
+        delete $4;
+      }
+      else if(strcmp($3.str, "mincost") == 0)
+      {
+        BDD f = BtoI_NE(*$4, 0).GetBDD(0);
+        if(f == -1)
+        {
+          yyerror("<WARNING> Memory overflow");
+          f = 0;
+        }
+        if(f == 0) bout << "<No covers.>";
+        else
+        {
+          char a[32];
+          sprintf(a, "   %d", MinCost(f));
+          if(OVF.Check()!= 0)
+      	    yyerror("<WARNING> Overflow occurred");
+          bout << a;
+        }
+        bout.Return();
+        delete $4;
+      }
+      else if(strcmp($3.str, "plot") == 0)
+      {
+#ifdef B_STATIC
+        bout << "sorry, not supported in this version.";
+        bout.Return();
+#else 
+        if(Plot(*$4, 1) == 1)
+        {
+          bout << "...";
+          bout.Return();
+          yyerror("<WARNING> Memory overflow");
+        }
+#endif
+        delete $4;
+      }
+      else if(strcmp($3.str, "plot0") == 0)
+      {
+#ifdef B_STATIC
+        bout << "sorry, not supported in this version.";
+        bout.Return();
+#else 
+        if(Plot(*$4, 0) == 1)
+        {
+          bout << "...";
+          bout.Return();
+          yyerror("<WARNING> Memory overflow");
+        }
+#endif
+        delete $4;
+      }
+      else if(strcmp($3.str, "decomp") == 0)
+      {
+        if(PrintDecomp(*$4) == 1)
+        {
+          bout << "...";
+          bout.Return();
+          yyerror("<WARNING> Memory overflow");
+        }
+        delete $4;
+      }
+      else if(strcmp($3.str, "export") == 0)
+      {
+        $4 -> GetMetaBDDV().Export();
+        delete $4;
+      }
+      else
+      {
+        yyerror("Illegal switch");
+        delete $4;
+      }
+      delete[] $3.str;
+    }
+  | print QUOTIENT IDVAR FNAME expression
+    {
+      if(strcmp($3.str, "export") == 0)
+      {
+        $4.str[$4.len - 1] = 0;
+        FILE *fp;
+        fp = fopen($4.str+1, "w");
+        if(fp == NULL) yyerror("Can't open the file");
+	else $5 -> GetMetaBDDV().Export(fp);
+	fclose(fp);
+      }
+      else
+      {
+        yyerror("Illegal switch");
+      }
+      delete[] $3.str;
+      delete[] $4.str;
+      delete $5;
+    }
+  ;
+  | print FNAME
+    {
+      $2.str[$2.len - 1] = 0;
+      cout << $2.str+1 << "\n";
+      cout.flush();
+      delete[] $2.str;
+    }
+  ;
+
+print
+  : PRINT
+  | QUESTION
+  ;
+
+help
+  : HELP
+  | QUESTION
+  ;
+%%
+

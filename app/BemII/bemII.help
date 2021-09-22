@@ -1,0 +1,148 @@
+less << @EOF
+#### BEM-II Sapporo Edition (v1.30) Help Document ####
+
+<Name convention>
+
+[a-z][a-zA-z0-9_]*    Boolean symbol (You can use 65500 symbols).
+[A-Z][a-zA-z0-9_]*    Function from Boolean vector to integer.
+[0-9]+                Constant Integer (base = 10).
+0x[0-9a-fA-f]+        Constant Integer (base = 16).
+0b[0-1]+              Constant Integer (base = 2).
+
+<Commands>
+
+symbol a b c ...           Defines the symbols.
+symbol a(2) b(3) c(1) ...  Defines the symbols with costs.
+symbol                     Lists all the symbols.
+symbol /v                  Lists all the symbols with values.
+symbol /t                  After that, symbols will be added at the top.
+symbol /b                  After that, symbols will be added at the bottom.
+F = <expr>                 Defines a function as <expr>.
+print <expr>               Displays the function of <expr>.
+print /<flag> <expr>       Displays the function of <expr>
+			       in the format specified with <flag>.
+print "<string>"           Prints <string>.
+? <expr>                   Displays the function of <expr>.
+? /<flag> <expr>           Displays the function of <expr>
+			       in the format specified with <flag>.
+? "<string>"               Prints <string>.
+source <file>              Executes the commands in <file>.
+help                       Displays this document.
+?                          Displays this document.
+exit                       Exits the program.
+quit                       Exits the program.
+
+<Expression> (and their priority: the upper is the more prior.)
+
+<expr1> [ <expr2> ]  Gives reduced <expr1>
+                          under the don't care set as <expr2>==0.
+! <expr>             Logical "NOT", (equivalent with <expr>==0).
+~ <expr>             Bitwise "NOT". Inverts all the bits.
+<expr1> + <expr2>    Arithmetic addition.
+<expr1> - <expr2>    Arithmetic subtraction.
+<expr1> * <expr2>    Arithmetic multiplication.
+<expr1> / <expr2>    Arithmetic division (quotient).
+<expr1> % <expr2>    Arithmetic division (remainder).
+<expr1> << <expr2>   Arithmetic left-shift.
+<expr1> >> <expr2>   Arithmetic right-shift.
+<expr1> > <expr2>    Gives condition (0/1) for the inequation.
+<expr1> < <expr2>    Gives condition (0/1) for the inequation.
+<expr1> >= <expr2>   Gives condition (0/1) for the inequation.
+<expr1> <= <expr2>   Gives condition (0/1) for the inequation.
+<expr1> == <expr2>   Gives condition (0/1) for the equation.
+<expr1> != <expr2>   Gives condition (0/1) for the equation.
+<expr1> & <expr2>    Bitwise/Logical "AND"
+<expr1> ^ <expr2>    Bitwise/Logical "EX-OR"
+<expr1> | <expr2>    Bitwise/Logical "OR"
+<expr1> ? <expr2> : <expr3>
+		     If <exp1> != 0 then <expr2> else <expr3>.
+Import("filename")   Import BDD from the external file.
+UpperBound(<expr>)   Gives the upper bound of <expr>.
+UpperBound(<expr>:<sym> <sym> ...) 
+                     Gives the upper bound of <expr> 
+			 for the movable symbols
+LowerBound(<expr>)   Gives the lower bound of <expr>.
+LowerBound(<expr>:<sym> <sym> ...) 
+                     Gives the lower bound of <expr>
+			 for the movable symbols
+
+<Flags on Printing>
+
+/hex         Displays the integer in hexa-decimal.
+/bit         Displays the function bit-wise.
+/asop        Displays in arithmetic sum-of-products form.
+/case        Displays the function's values and conditions.
+/map         Displays in Karnough-map.
+/rmap        Displays in reduced Karnough-map.
+/size        Shows the size of the BDD.
+/count       Shows the number of combinations for the function != 0.
+/density     Shows the ratio of combinations for the function != 0.
+/mincover    Gives a minimum-cost cover for the function != 0.
+/mincost     Gives a minimum-cost for function != 0.
+/plot        Draws BDD graph on X-windows.
+/plot0       Draws BDD graph on X-windows without negative edges.
+/export      Dumps BDD graph.
+/export "filename" 
+             Export BDD graph to the file.
+
+<Special characters>
+
+# ... Comment out 1 line.
+; ... multiple statements on 1 line.
+\ ... Escape of "return". 
+
+<Examples>
+
+  > symbol a(3) b(2) c(4) d(1)
+  > Sum = a*3 + b*4 + c*5 - d*2
+  > print Sum
+  +-: !a & !b & !c & d
+    : ...
+   3: a & b & c | a & c & !d | !a & !b & !c & d | b & c & !d
+   2: b ^ ( a & c & d | !a & c & !d | !a & !c & d )
+   1: d ^ ( a & !c )
+   0: a ^ c
+  > print /case Sum
+      12:  a & b & c & !d
+      10:  a & b & c & d
+       9:  !a & b & c & !d
+       8:  a & !b & c & !d
+       7:  a & b & !c & !d | !a & b & c & d
+       6:  a & !b & c & d
+       5:  a & b & !c & d | !a & !b & c & !d
+       4:  !a & b & !c & !d
+       3:  a & !b & !c & !d | !a & !b & c & d
+       2:  !a & b & !c & d
+       1:  a & !b & !c & d
+       0:  !a & !b & !c & !d
+      -2:  !a & !b & !c & d
+  > print /map Sum
+   a b : c d
+       |    00    01    11    10
+    00 |     0    -2     3     5
+    01 |     4     2     7     9
+    11 |     7     5    10    12
+    10 |     3     1     6     8
+  > print /asop Sum
+   3 * a + 4 * b + 5 * c - 2 * d
+  > print UpperBound(Sum)
+      12
+  > print LowerBound(Sum)
+      -2
+  > print /map UpperBound(Sum: a b)
+   a b : c d
+       |    00    01    11    10
+    00 |     7     5    10    12
+    01 |     7     5    10    12
+    11 |     7     5    10    12
+    10 |     7     5    10    12
+  > print Sum > 6
+     a & b & !d | a & c & !d | b & c
+  > F = Sum > 6
+  > print /mincover F
+  <Positive>: a b
+  > print /mincost F
+     5
+  > exit
+
+@EOF

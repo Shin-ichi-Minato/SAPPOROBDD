@@ -1,0 +1,191 @@
+less << @EOF
+#### VSOP(v1.41) Help Document ####
+
+<Name convention>
+
+[a-z][a-zA-Z0-9_]*    Symbol (You can use upto 65500 symbols).
+[A-Z][a-zA-Z0-9_]*    Register variable for a VSOP
+[0-9]+                Constant number (base:10)
+0X[0-9A-F]+           Constant number (base:16)
+0B[01]+               Constant number (base:2)
+
+<Commands>
+
+symbol a b c ...            Declares the symbols.
+symbol a(cost) b(cost)  ... Declares the symbols with costs.
+symbol [a b] [c d e] ...    Declares the groups of exclusive symbols.
+symbol                      Lists all the symbols.
+symbol /v                   Lists all the symbols with costs.
+symbol /t                   After that, symbols will be added at the top.
+symbol /b                   After that, symbols will be added at the bottom.
+F = <expr>                  Defines F as <expr>
+print <expr>                Displays <expr>.
+print <flag> <expr>         Displays <expr> in the format of <flag>.
+print "<string>"            Prints <string>.
+? <expr>                    Displays <expr>.
+? <flag> <expr>             Displays <expr> in the format of <flag>.
+? "<string>"                Prints <string>.
+source <file>               Executes the commands in <file>.
+help                        Displays this document.
+?                           Displays this document.
+exit                        Exits the program.
+quit                        Exits the program.
+
+<Operators in expressions> 
+
+( <expr> )                  Calculate first.
+<expr>.MaxVal               Maximum value in the set.
+<expr>.MinVal               Minimum value in the set.
+<expr>.TotalVal             Total values of all terms in <expr>.
+<expr>.Items                All symbols used in <expr> with total
+                             values of related terms.
+<expr1>.TermsEQ(<expr2>)    Filters terms in <expr1> equal to
+                             the constant term of <expr2>.
+<expr1>.TermsNE(<expr2>)    Filters terms in <expr1> not equal to
+                             the constant term of <expr2>.
+<expr1>.TermsGT(<expr2>)    Filters terms in <expr1> greater than
+                             the constant term of <expr2>.
+<expr1>.TermsGE(<expr2>)    Filters terms in <expr1> not less than
+                             the constant term of <expr2>.
+<expr1>.TermsLT(<expr2>)    Filters terms in <expr1> less than
+                             the constant term of <expr2>.
+<expr1>.TermsLE(<expr2>)    Filters terms in <expr1> not greater than
+                             the constant term of <expr2>.
+<expr1>.Restrict(<expr2>)   Filters terms in <expr1> each of which
+                             includes one of combinations in <expr2>.
+<expr1>.Permit(<expr2>)     Filters terms in <expr1> each of which is
+                             included in one of combinations in <expr2>.
+<expr1>.PermitSym(<expr2>)  Filters terms in <expr1> each of which consists
+                             of up to <expr2> number of items.
+<expr1>.FreqPatA(<expr2>)   Generates all frequent patterns in <expr1>
+                             with the minimum support <expr2>.
+<expr1>.FreqPatM(<expr2>)   Generates maximal frequent patterns in <expr1>
+                             with the minimum support <expr2>.
+<expr1>.FreqPatC(<expr2>)   Generates closed frequent patterns in <expr1>
+                             with the minimum support <expr2>.
+<expr1>.SymGrp              Generates symmetric item sets in <expr1>.
+<expr1> <expr2>             Multiplication.
+<expr1> * <expr2>           Multiplication.
+<expr1> / <expr2>           Quotient of division.
+<expr1> % <expr2>           Remainder of division.
+<expr1> @ <expr2>           "Meet" operation. (see Knuth-book)
+<expr1> + <expr2>           Addition.
+<expr1> - <expr2>           Subtraction.
++ <expr>                    Multiplies 1. (no effect)
+- <expr>                    Multiplies -1.
+<expr1> == <expr2>          Extracts combinations satisfying equation.
+<expr1> != <expr2>          Extracts combinations satisfying inequation.
+<expr1> > <expr2>           Extracts combinations satisfying inequation.
+<expr1> >= <expr2>          Extracts combinations satisfying inequation.
+<expr1> < <expr2>           Extracts combinations satisfying inequation.
+<expr1> <= <expr2>          Extracts combinations satisfying inequation.
+<expr1> ? <expr2> : <expr3> If <expr1> then <expr2> else <expr3>.
+Import("filename")          Imports ZBDD graph from the external file.
+Lcm("<switch>" "<filename>" <num>)
+                            generates frequent patterns using LCM algorithm
+			      from the FIMI format database file <filename> 
+                              with minimum support = <num>.
+			      <switch> specifies LCM parameter as:
+			      F  all patterns,
+			      C  closed patterns,
+			      M  maximal patterns,
+			      FQ  all patterns with frequencies,
+			      CQ  closed patterns with frequencies,
+			      MQ  maximal patterns with frequencies.
+Lcm("<switch>" "<filename>" <num> "<filename2>")
+                            generates frequent patterns using LCM algorithm
+			      from the FIMI format database file <filename> 
+                              with minimum support = <num> and
+			      variable order file <filename2>.
+			      <switch> specifies LCM parameter as:
+			      F  all patterns,
+			      C  closed patterns,
+			      M  maximal patterns,
+			      FQ  all patterns with frequencies,
+			      CQ  closed patterns with frequencies,
+			      MQ  maximal patterns with frequencies.
+
+<Flags on Printing>
+
+/map         Displays in a Karnough-map.
+/rmap        Displays in a reduced Karnough-map.
+/hex         Displays integers in hexa-decimal.
+/bit         Displays in bit-wise expressions.
+/case        Sorts all combinations by their values.
+/size        Shows the size of the ZBDD.
+/count       Shows the number of combinations in the set.
+/density     Shows the density of combinations in the set.
+/value       Shows the numerical value of the expression.
+/maxcover    Shows a maximum-cost combination in the set.
+/maxcost     Shows cost of the maximum-cost combination.
+/mincover    Shows a minimum-cost combination in the set.
+/mincost     Shows cost of the minimum-cost combination.
+/decomp      Shows the simple disjoint decompositions.
+/plot        Draws ZBDD graph on X-windows.
+/export      Dumps ZBDD graph.
+/export "filename"
+             Export ZBDD graph to the external file.
+
+<Special characters>
+
+# ... Comment out 1 line.
+; ... multiple statements on 1 line.
+\ ... Escape of "return". 
+
+<Example>
+***** VSOP (Valued Sum-Of-Products) calculator <v1.26> *****
+ vsop> symbol a b c d e
+ vsop> F = (a + 2 b)(c + d)
+ vsop> print F
+  a c + a d + 2 b c + 2 b d
+ vsop> print /rmap F
+  a b : c d
+      |    00    01    11    10
+   00 |     0     0     0     0
+   01 |     0     2     0     2
+   11 |     0     0     0     0
+   10 |     0     1     0     1
+ vsop> G = (2 a - d)(c - e)
+ vsop> print G
+  2 a c - 2 a e - c d + d e
+ vsop> print /rmap G
+  a c : d e
+      |    00    01    11    10
+   00 |     0     0     1     0
+   01 |     0     0     0    -1
+   11 |     2     0     0     0
+   10 |     0    -2     0     0
+ vsop> H = F * G
+ vsop> print H
+  4 a b c d - 4 a b c e + 4 a b c - 4 a b d e + a c d e - 2 a c e + 2 a
+   c - a d e + 2 b c d e - 4 b c d + 2 b d e
+ vsop> print /rmap H
+  a b : c d e
+      |   000   001   011   010 |   110   111   101   100
+   00 |     0     0     0     0 |     0     0     0     0
+   01 |     0     0     2     0 |    -4     2     0     0
+   11 |     0     0    -4     0 |     4     0    -4     4
+   10 |     0     0    -1     0 |     0     1    -2     2
+ vsop> print /count H
+    11
+ vsop> print /size H
+    24 (35)
+ vsop> print H > 0
+  a b c d + a b c + a c d e + a c + b c d e + b d e
+ vsop> print (H > 0)? H: 0
+  4 a b c d + 4 a b c + a c d e + 2 a c + 2 b c d e + 2 b d e
+ vsop> print (H > 0)? H: -H
+  4 a b c d + 4 a b c e + 4 a b c + 4 a b d e + a c d e + 2 a c e + 2 a
+   c + a d e + 2 b c d e + 4 b c d + 2 b d e
+ vsop> print H / (a + b)
+  c d e - d e
+ vsop> print H / (a + b) * (a + b)
+  a c d e - a d e + b c d e - b d e
+ vsop> print H % (a + b)
+  4 a b c d - 4 a b c e + 4 a b c - 4 a b d e - 2 a c e + 2 a c + b c d
+   e - 4 b c d + 3 b d e
+ vsop> print H / (c e)
+  - 4 a b + a d - 2 a + 2 b d
+ vsop> quit
+ 
+@EOF
