@@ -1,18 +1,19 @@
-BDD Package SAPPORO-Edition-1.0 (S. Minato, Hokkaido Univ. 2005)
+BDD Package SAPPORO-Edition-1.81  (S. Minato, Hokkaido Univ. 2017)
 
 Directory structure:
+./README         This file.
+./COPYRIGHT      Copyright description of this package.
+./include/       Header files.
+./src/           Source files of BDD package.
+./src/INSTALL    Script for compiling all files in src/ .
+./src/INSTALL64  Script for compiling all files in src/ on 64bit machine.
+./src/CLEAN      Script for deleting all object files in src/ . 
+./src/BDDc/      Core of package written in C.
+./src/BDDXc/     Part of package related to X11, written in C.
+./src/BDDLCMc/   Part of package related to LCM, written in C.
+./src/BDD+/      Main part of package written in C++.
+./lib/           Compiled BDD library files are stored here.
+./app/           Source programs of BDD applications.
+./man/           Manuals of BDD package. (So far Japanese only..)
 
-SAPPOROBDD/README         This file.
-SAPPOROBDD/COPYRIGHT      Copyright desdription of this package.
-SAPPOROBDD/app/           Source programs of BDD applications.
-SAPPOROBDD/include/       Header files.
-SAPPOROBDD/lib/           Compiled BDD library files are stored here.
-SAPPOROBDD/man/           Manuals of BDD package. (So far Japanese only..)
-SAPPOROBDD/src/           Source files of BDD package.
-SAPPOROBDD/src/BDDc/      Core of package written in C.
-SAPPOROBDD/src/BDDXc/     Part of package related to X11, written in C.
-SAPPOROBDD/src/BDDLCMc/   Part of package related to LCM, written in C.
-SAPPOROBDD/src/BDD+/      Main part of package written in C++.
-SAPPOROBDD/src/INSTALL    Script for compiling all files in SAPPOROBDD/src/
-
-
+First go to ./src (cd src) and execute a script (source INSTALL) or (source INSTALL64) to compile the BDD package into a library file ../lib/BDD.a or ../lib/BDD64.a. Then go to a directory under ../app to make an application program using the BDD package.
