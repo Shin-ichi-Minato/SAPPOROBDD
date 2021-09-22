@@ -13,7 +13,7 @@ OBJLCM	= $(DIR)/src/BDDLCM/*.o
 all:	BDD.o BDDX11.o BDDHASH.o ZBDD.o ZBDDX11.o \
 	ZBDDHASH.o ZBDDLCM.o MLZBDDV.o SOP.o BtoI.o \
 	CtoI.o CtoIX11.o BDDDG.o ZBDDDG.o \
-	PiDD.o SeqBDD.o GraphSupport.o
+	PiDD.o SeqBDD.o GBase.o BDDCT.o
 	rm -f $(LIB)
 	ar cr $(LIB) *.o $(OBJC) $(OBJX) $(OBJLCM)
 	ranlib $(LIB)
@@ -21,7 +21,7 @@ all:	BDD.o BDDX11.o BDDHASH.o ZBDD.o ZBDDX11.o \
 64:     BDD_64.o BDDX11_64.o BDDHASH_64.o ZBDD_64.o ZBDDX11_64.o \
 	ZBDDHASH_64.o ZBDDLCM_64.o MLZBDDV_64.o SOP_64.o BtoI_64.o \
 	CtoI_64.o CtoIX11_64.o BDDDG_64.o ZBDDDG_64.o \
-	PiDD_64.o SeqBDD_64.o GraphSupport_64.o
+	PiDD_64.o SeqBDD_64.o GBase_64.o BDDCT_64.o
 	rm -f $(LIB64)
 	ar cr $(LIB64) *.o $(OBJC) $(OBJX) $(OBJLCM)
 	ranlib $(LIB64)
@@ -157,11 +157,19 @@ SeqBDD_64.o: SeqBDD.cc $(INCL)/SeqBDD.h $(INCL)/ZBDD.h $(INCL)/BDD.h
 	$(CC) $(OPT64) -c SeqBDD.cc -o SeqBDD_64.o
 	rm -f SeqBDD.o
 
-GraphSupport.o: GraphSupport.cc $(INCL)/GraphSupport.h $(INCL)/ZBDD.h $(INCL)/BDD.h
-	$(CC) $(OPT) -c GraphSupport.cc
-	rm -f GraphSupport_64.o
+GBase.o: GBase.cc $(INCL)/GBase.h $(INCL)/ZBDD.h $(INCL)/BDD.h
+	$(CC) $(OPT) -c GBase.cc
+	rm -f GBase_64.o
 
-GraphSupport_64.o: GraphSupport.cc $(INCL)/GraphSupport.h $(INCL)/ZBDD.h $(INCL)/BDD.h
-	$(CC) $(OPT64) -c GraphSupport.cc -o GraphSupport_64.o
-	rm -f GraphSupport.o
+GBase_64.o: GBase.cc $(INCL)/GBase.h $(INCL)/ZBDD.h $(INCL)/BDD.h
+	$(CC) $(OPT64) -c GBase.cc -o GBase_64.o
+	rm -f GBase.o
+
+BDDCT.o: BDDCT.cc $(INCL)/BDDCT.h $(INCL)/ZBDD.h $(INCL)/BDD.h
+	$(CC) $(OPT) -c BDDCT.cc
+	rm -f BDDCT_64.o
+
+BDDCT_64.o: BDDCT.cc $(INCL)/BDDCT.h $(INCL)/ZBDD.h $(INCL)/BDD.h
+	$(CC) $(OPT64) -c BDDCT.cc -o BDDCT_64.o
+	rm -f BDDCT.o
 
