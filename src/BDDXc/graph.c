@@ -4,7 +4,6 @@
 #include "train.h"
 #include "reorder.h"
 
-#define NODEBLUSH	2
 #define DEFAULTRADIX	20
 #define SPOTRADIX	3
 #define CHECKCOUNT      20
@@ -42,7 +41,6 @@ extern int NameOfLeaf();
 extern int AttributeOfEdge();
 extern int TableMaximumBound();
 extern int WindowOpen();
-extern int Interrupt();
 
 static int	radix = DEFAULTRADIX;
 
@@ -75,17 +73,17 @@ void	PutNode( level, number )
   
   Center( level, number, &x, &y );
   if( level == BDDIOfunctionlevel ){
-    Circle( x, y, radix, fore, NODEBLUSH );
+    Circle( x, y, radix );
     DrawBoldInt( number + 1, x, y );
   }
   else if( level > 0 ){
-    Circle( x, y, radix, fore, NODEBLUSH );
+    Circle( x, y, radix );
     if( radix > MeanFontWidth() ){
       DrawInt( level, x, y );
     }
   }
   else{
-    Square( x, y, radix, fore, NODEBLUSH );
+    Square( x, y, radix );
     DrawInt( NameOfLeaf( *(bddp*)TrainIndex( (train*)TrainIndex( &BDDIOpacks,
 								level ),
 					    number) ),
@@ -170,8 +168,8 @@ static void	NegativPochi( level, number )
   else{
     Hip( level, number, &x, &y );
   }
-/*  Circle( x, y, SPOTRADIX / 2, back, SPOTRADIX / 2 + 2 );*/
-  Circle( x, y, SPOTRADIX, fore, NODEBLUSH );
+/*  Circle( x, y, SPOTRADIX / 2 );*/
+  Circle( x, y, SPOTRADIX );
 }
 
 
@@ -187,8 +185,8 @@ static void	LeftNegativPochi( level, number )
   else{
     Hip( level, number, &x, &y );
   }
-/*  Circle( x, y, SPOTRADIX / 2, back, SPOTRADIX / 2 + 2 );*/
-  Circle( x, y, SPOTRADIX, fore, NODEBLUSH );
+/*  Circle( x, y, SPOTRADIX / 2 );*/
+  Circle( x, y, SPOTRADIX );
 }
 
 
@@ -204,7 +202,7 @@ void	ExPochi( level, number )
   else{
     Hip( level, number, &x, &y );
   }
-  Cross( x, y, SPOTRADIX * 2, NODEBLUSH );
+  Cross( x, y, SPOTRADIX * 2 );
 }
 
 void	LeftExPochi( level, number )
@@ -219,7 +217,7 @@ void	LeftExPochi( level, number )
   else{
     Hip( level, number, &x, &y );
   }
-  Cross( x, y, SPOTRADIX * 2, NODEBLUSH );
+  Cross( x, y, SPOTRADIX * 2 );
 }
 
 
@@ -243,9 +241,6 @@ static void	DrawNodes(){
       pk = ( pack *)TrainIndex( p, j );
       if( cnt == 0 ){
 	cnt = CHECKCOUNT;
-	if( Interrupt() ){
-	  goto loopabort;
-	}
       }
       else{
 	cnt --;
@@ -276,7 +271,6 @@ static void	DrawNodes(){
       }
     }
   }
- loopabort:;
 }
 
 

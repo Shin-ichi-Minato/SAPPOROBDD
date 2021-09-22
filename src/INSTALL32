@@ -1,8 +1,8 @@
 cd BDDc
-make 64
+make 32
 cd ../BDDXc
-make 64
+make 32
 cd ../BDD+
-make 64
+make 32
 cd ..
 

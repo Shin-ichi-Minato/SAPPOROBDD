@@ -2,15 +2,15 @@ CC	= g++
 
 DIR	= ../..
 INCL    = $(DIR)/include
-LIB	= $(DIR)/lib/BDD.a
+LIB	= $(DIR)/lib/BDD32.a
 LIB64	= $(DIR)/lib/BDD64.a
 XLIB64  = -lX11
 #XLIB64  = /usr/X11R6/lib64/libX11.a
 
-PRG     = isop
-PRG64   = isop64
-PRG_ST  = isop-static
-PRG64_ST = isop64-static
+PRG     = isop32
+PRG64   = isop
+PRG_ST  = isop32-static
+PRG64_ST = isop-static
 
 OPT 	= -O2 -DYY_ALWAYS_INTERACTIVE -I$(INCL)
 OPT64   = $(OPT) -DB_64
@@ -22,13 +22,13 @@ OBJ64   = isop_64.o
 OBJ_ST  = isop_st.o
 OBJ64_ST = isop_64_st.o
 
-all:	$(PRG)    
+all:	$(PRG64)    
 
-64:	$(PRG64)    
+32:	$(PRG)    
 
-static:	$(PRG_ST)    
+static:	$(PRG64_ST)    
 
-64static: $(PRG64_ST)    
+32static: $(PRG_ST)    
 
 $(PRG): $(OBJ) $(LIB)
 	$(CC) $(OPT) $(OBJ) $(LIB) -lX11 -o $(PRG)

@@ -173,7 +173,6 @@ void	WindowClose(){
 void	Wait(){
   XEvent	event;
   int		exitf;
-  static char	message[] = " Beware of X's bug!";
 
   exitf = 0;
   do{
@@ -182,10 +181,6 @@ void	Wait(){
     case Expose:
       XDefineCursor( disp, window, waitcu );
       Show();
-#ifdef VERBOSE
-      XDrawImageString( disp, window, wingc,
-		       0, 0 + fontinfo->ascent, message, strlen( message ) );
-#endif
       XDefineCursor( disp, window, yubicu );
       break;
     case ButtonPress:
@@ -210,15 +205,7 @@ int	DontCrip( x, y )
 
 
 int Interrupt(){
-  int  b;
-  XEvent  event; 
-
   XSync( disp, 0 );
-/*  b = XCheckWindowEvent( window, ExposeWindow, &event );
-  if( b == 1 ){
-    XPutBackEvent( &event );
-  }
-  return( b );*/
   return( 0 );
 }
 

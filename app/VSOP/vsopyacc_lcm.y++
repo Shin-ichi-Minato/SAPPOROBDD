@@ -333,7 +333,7 @@ std::vector<std::string> AutoExportPaths;
 
 %token	SEMICOLON RETURN SYMBOL PRINT EXIT HELP
 %token  TEQ TNE TGT TGE TLT TLE 
-%token  FPA FPAV FPM FPC SYMGRP IMPORT //LCM
+%token  FPA FPAV FPM FPC SYMGRP IMPORT LCM
 %token	MAXVAL MINVAL TOTALVAL RESTRICT PERMIT PERMITSYM ITEMS ALWAYS
 %token	QUESTION COMMA PERIOD ASSIGN
 %token  PLUS MINUS MULTIPLY QUOTIENT REMAINDER MEET
@@ -816,7 +816,6 @@ expr
       }
       delete[] $3.str;
     }
-  /*
   | LCM LPAREN FNAME FNAME NUMBER RPAREN
     {
       $3.str[$3.len - 1] = 0;
@@ -867,7 +866,6 @@ expr
       delete[] $5.str;
       delete[] $6.str;
     }
-  */
   | MINUS expr %prec UMINUS
     {
       *$2 = - *$2;

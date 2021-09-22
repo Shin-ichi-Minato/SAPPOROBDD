@@ -2,17 +2,17 @@ CC	= g++
 
 DIR	= ../..
 INCL    = $(DIR)/include
-LIB	= $(DIR)/lib/BDD.a
+LIB	= $(DIR)/lib/BDD32.a
 LIB64	= $(DIR)/lib/BDD64.a
 XLIB64  = -lX11
 #XLIB64  = /usr/X11R6/lib64/libX11.a
 
-PRG     = gpm
-PRG64   = gpm64
-PRG_ST  = gpm-static
-PRG64_ST = gpm64-static
+PRG     = gpm32
+PRG64   = gpm
+PRG_ST  = gpm32-static
+PRG64_ST = gpm-static
 
-OPT 	= -O2 -DYY_ALWAYS_INTERACTIVE -I$(INCL)
+OPT 	= -O3 -DYY_ALWAYS_INTERACTIVE -I$(INCL)
 OPT64   = $(OPT) -DB_64
 OPT_ST  = $(OPT) -DB_STATIC -static
 OPT64_ST = $(OPT64) -DB_STATIC -static
@@ -22,13 +22,13 @@ OBJ64   = gpm_64.o
 OBJ_ST  = gpm_st.o
 OBJ64_ST = gpm_64_st.o
 
-all:	$(PRG)    
+all:	$(PRG64)    
 
-64:	$(PRG64)    
+32:	$(PRG)    
 
-static:	$(PRG_ST)    
+static:	$(PRG64_ST)    
 
-64static: $(PRG64_ST)    
+32static: $(PRG_ST)    
 
 $(PRG): $(OBJ) $(LIB)
 	$(CC) $(OPT) $(OBJ) $(LIB) -lX11 -o $(PRG)

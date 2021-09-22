@@ -4,16 +4,16 @@ LEX	= flex -l
 
 DIR	= ../..
 INCL    = $(DIR)/include
-LIB	= $(DIR)/lib/BDD.a
+LIB	= $(DIR)/lib/BDD32.a
 LIB64	= $(DIR)/lib/BDD64.a
 #XLIB64  = -lX11
 #XLIB64  = /usr/X11R6/lib64/libX11.a
 XLIB64 = -L/opt/X11/lib -lX11
 
-PRG     = ssq
-PRG64   = ssq64
-PRG_ST  = ssq-static
-PRG64_ST = ssq64-static
+PRG     = ssq32
+PRG64   = ssq
+PRG_ST  = ssq32-static
+PRG64_ST = ssq-static
 
 OPT 	= -O3 -Wall -W -DYY_ALWAYS_INTERACTIVE -I$(INCL)
 OPT64   = $(OPT) -DB_64
@@ -25,13 +25,13 @@ OBJ64   = print_64.o table_64.o lex.yy_64.o y.tab_64.o yywrap_64.o
 OBJ_ST  = print_st.o table.o lex.yy.o y.tab_st.o yywrap.o
 OBJ64_ST = print_64_st.o table_64.o lex.yy_64.o y.tab_64_st.o yywrap_64.o
 
-all:	$(PRG)    
+all:	$(PRG64)    
 
-64:	$(PRG64)    
+32:	$(PRG)    
 
-static:	$(PRG_ST)    
+static:	$(PRG64_ST)    
 
-64static: $(PRG64_ST)    
+32static: $(PRG_ST)    
 
 $(PRG): $(OBJ) $(LIB)
 	$(CC) $(OPT) $(OBJ) $(LIB) -lX11 -o $(PRG)

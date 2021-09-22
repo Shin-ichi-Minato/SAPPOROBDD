@@ -58,6 +58,7 @@ source { BEGIN(src); }
 "."FreqPatC { return FPC; }
 "."SymGrp { return SYMGRP; }
 Import { return IMPORT; }
+Lcm { return LCM; }
 autoexport { return AUTOEXPORT; }
 
 "?" { return QUESTION; }

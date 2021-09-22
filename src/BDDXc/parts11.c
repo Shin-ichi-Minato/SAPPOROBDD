@@ -82,11 +82,9 @@ void	DrawBoldInt( number, x, y )
 }
 
 
-void	Circle( x, y, r, pixel, blush )
+void	Circle( x, y, r )
      int	x, y;
      unsigned int r;
-     int	pixel;
-     int	blush;
 {
   if( DontCrip( x, y ) ){
     XDrawArc( disp, window, wingc, x - (int)r, y - (int)r, 2 * r, 2 * r,
@@ -95,11 +93,9 @@ void	Circle( x, y, r, pixel, blush )
 }
 
 
-void	Square( x, y, r, pixel, blush )
+void	Square( x, y, r )
      int	x, y;
      unsigned int r;
-     int	pixel;
-     int	blush;
 {
   if( DontCrip( x, y ) ){
     XDrawRectangle( disp, window, wingc,
@@ -157,9 +153,8 @@ void Curve( x0, y0, xf, yf, xp, yp, xt, yt, splineflag )
 }
 
 
-void	Cross( x, y, s, brush )
+void	Cross( x, y, s )
      int	x, y, s;
-     int	brush;
 {
   if( DontCrip( x, y ) ){
     XDrawLine( disp, window, wingc, x - s, y - s, x + s, y + s );
