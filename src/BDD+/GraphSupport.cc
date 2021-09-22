@@ -1,7 +1,7 @@
 /****************************************
- * GraphSopport class (SAPPORO-1.59)    *
+ * GraphSopport class (SAPPORO-1.83)    *
  * (Main part)                          *
- * (C) Shin-ichi MINATO (Feb. 26, 2017) *
+ * (C) Shin-ichi MINATO (Mar. 24, 2017) *
  ****************************************/
 
 #include "GraphSupport.h"
@@ -186,7 +186,6 @@ static GS_v _n;
 static GS_e _m;
 
 static const int HashStart = 1<<2;
-static const int HashLimit = 40000000;
 static const int HashTry = 1<<4;
 static int _magic;
 
@@ -194,41 +193,42 @@ const char GS_fix0 = 1;
 const char GS_fix1 = 2;
 
 #ifdef DEBUG
-static int _ent_a;
-static int _ref;
-static int _col;
-static int _hit;
-static int _count;
-static int _sol;
+static bddword _ent_a;
+static bddword _ref;
+static bddword _col;
+static bddword _hit;
+static bddword _count;
+static bddword _sol;
 #endif
 
 static int CacheEnlarge(GS_e);
 int CacheEnlarge(GS_e ix)
 {
-  int newsize = _e[ix]._casize << 1;
+  bddword newsize = _e[ix]._casize << 1;
 
   GraphSupport::CacheEntry* newca = 0;
   if(!(newca = new GraphSupport::CacheEntry[newsize])) return 1;
 
   GS_v* newca_mate = 0;
-  if(!(newca_mate =  new GS_v[_e[ix]._mtwid*newsize]))
+  bddword newsize_mate = newsize * _e[ix]._mtwid;
+  if(!(newca_mate =  new GS_v[newsize_mate]))
     { delete[] newca; return 1; }
 
-  for(int i=0; i<_e[ix]._mtwid*newsize; i++) newca_mate[i] = 0;
-  for(int j=0; j<_e[ix]._casize; j++)
+  for(bddword i=0; i<newsize_mate; i++) newca_mate[i] = 0;
+  for(bddword j=0; j<_e[ix]._casize; j++) 
   {
     if(_e[ix]._ca[j]._h != -1)
     {
-      int k = 0;
+      bddword k = 0;
       bddword id = _e[ix]._ca[j]._f.GetID(); // ZDD-constrained enum.
       k = (id+(id>>10)+(id>>20)); // ZDD-constrained enum.
       for(int i=0; i<_e[ix]._mtwid; i++)
       {
-        int x = _e[ix]._ca_mate[_e[ix]._mtwid*j + i];
+        bddword x = _e[ix]._ca_mate[j * _e[ix]._mtwid + i];
         k ^= (i<<2)^(k<<12)^x^(x<<(2*i+3))^(x<<((11*i+7)&15)); // 8bit-v;
       }
       k &= newsize - 1;
-      int k0 = k;
+      bddword k0 = k;
       int t;
       for(t=0; t<HashTry; t++)
       {
@@ -239,7 +239,7 @@ int CacheEnlarge(GS_e ix)
       if(t == HashTry) 
         k = (k0 + (_magic++ & (HashTry-1))) & (newsize-1);
       for(int i=0; i<_e[ix]._mtwid; i++)
-        newca_mate[_e[ix]._mtwid*k + i] = _e[ix]._ca_mate[_e[ix]._mtwid*j + i];
+        newca_mate[k * _e[ix]._mtwid + i] = _e[ix]._ca_mate[j * _e[ix]._mtwid + i];
       newca[k]._f = _e[ix]._ca[j]._f; // ZDD-constrained enum.
       newca[k]._h = _e[ix]._ca[j]._h;
     }
@@ -252,15 +252,15 @@ int CacheEnlarge(GS_e ix)
   return 0;
 }
 
-static int Hash(const GS_e);
-int Hash(const GS_e ix)
+static bddword Hash(const GS_e);
+bddword Hash(const GS_e ix)
 {
-  int k = 0;
+  bddword k = 0;
   bddword id = _e[ix]._f.GetID(); // ZDD-constrained enum.
   k = (id+(id>>10)+(id>>20)); // ZDD-constrained enum.
   for(int i=0; i<_e[ix]._mtwid; i++)
   {
-    int x = _e[ix]._cfg[_e[ix]._map[i]-1];
+    bddword x = _e[ix]._cfg[_e[ix]._map[i]-1];
     k ^= (i<<2)^(k<<12)^x^(x<<(2*i+3))^(x<<((11*i+7)&15)); // 8bit-v;
   }
   k &= _e[ix]._casize - 1;
@@ -275,14 +275,15 @@ ZBDD CacheCheck(const GS_e ix)
 #ifdef DEBUG
   _ref++;
 #endif
-  int k = Hash(ix);
+  bddword k = Hash(ix);
   for(int t=0; t<HashTry; t++)
   {
     if(_e[ix]._ca[k]._h == -1) return -1;
     int i;
     for(i=0; i<_e[ix]._mtwid; i++)
     {
-      if(_e[ix]._ca_mate[_e[ix]._mtwid*k + i] != _e[ix]._cfg[_e[ix]._map[i]-1]) break;
+      if(_e[ix]._ca_mate[k * _e[ix]._mtwid + i]
+         != _e[ix]._cfg[_e[ix]._map[i]-1]) break;
     }
     if(i == _e[ix]._mtwid)
     {
@@ -308,8 +309,8 @@ void CacheEnter(const GS_e ix, ZBDD h)
 {
   if(_e[ix]._casize == 0) return;
 
-  if(_e[ix]._caent++ > _e[ix]._casize &&
-     _e[ix]._casize < (HashLimit>>1))
+  if(++_e[ix]._caent >= _e[ix]._casize &&
+     (_e[ix]._caent & 255) == 0 )
   {
     if(CacheEnlarge(ix)) cerr << "enlarge failed.\n";
   }
@@ -317,8 +318,8 @@ void CacheEnter(const GS_e ix, ZBDD h)
 #ifdef DEBUG
   _ent_a++;
 #endif
-  int k = Hash(ix);
-  int k0 = k;
+  bddword k = Hash(ix);
+  bddword k0 = k;
   int t;
   for(t=0; t<HashTry; t++)
   {
@@ -329,7 +330,7 @@ void CacheEnter(const GS_e ix, ZBDD h)
   if(t == HashTry) 
     k = (k0 + (_magic++ & (HashTry-1))) & (_e[ix]._casize-1);
   for(int i=0; i<_e[ix]._mtwid; i++)
-    _e[ix]._ca_mate[_e[ix]._mtwid*k + i] = _e[ix]._cfg[_e[ix]._map[i]-1];
+    _e[ix]._ca_mate[k * _e[ix]._mtwid + i] = _e[ix]._cfg[_e[ix]._map[i]-1];
   _e[ix]._ca[k]._f = _e[ix]._f; // ZDD-constrained enum.
   _e[ix]._ca[k]._h = h;
 }
@@ -406,17 +407,14 @@ int EnumCyclesInit()
 	if(!is_out) _e[i]._map[k++] = v;
       }
     }
-    for(int j=0; j<2; j++)
-      for(int p=0; p<2; p++)
-	if((_e[i]._io[p] & 1) != 0)
-	  _e[i]._map[k++] = _e[i]._ev[p];
+    for(int p=0; p<2; p++)
+      if((_e[i]._io[p] & 1) != 0) _e[i]._map[k++] = _e[i]._ev[p];
   }
 
   // init MateCache
   for(int i=0; i<_m; i++)
   {
     _e[i]._casize = HashStart;
-    _e[i]._mtwid = _e[i]._mtwid;
     _e[i]._caent = 0;
     if(_e[i]._ca) { delete[] _e[i]._ca; _e[i]._ca = 0; }
     if(_e[i]._ca_mate)
@@ -451,9 +449,10 @@ int EnumCyclesInit()
     {
       if(!(_e[i]._ca = new GraphSupport::CacheEntry[_e[i]._casize]))
         return 1;
-      if(!(_e[i]._ca_mate = new GS_v[_e[i]._mtwid*_e[i]._casize]))
+      bddword casize_mate = _e[i]._casize * _e[i]._mtwid;
+      if(!(_e[i]._ca_mate = new GS_v[casize_mate]))
         return 1;
-      for(int j=0; j<_e[i]._mtwid*_e[i]._casize; j++)
+      for(bddword j=0; j<casize_mate; j++)
         _e[i]._ca_mate[j] = 0;
     }
   }
@@ -469,7 +468,7 @@ int EnumCyclesInit()
 
   _e[0]._f = G->_f; // for ZDD-constrained enumeration
 
-/* 
+  /*
   for(int i=0; i<_n; i++) cout << (int)_v[i]._deg << "\n";
   for(int i=0; i<_m; i++)
   {
@@ -478,7 +477,7 @@ int EnumCyclesInit()
     cout << "\n";
   }
   cout << (int)G->_maxwid << "\n\n";
-*/
+  */
 
   return 0;
 }
@@ -601,7 +600,8 @@ skip1:
 
 ZBDD GraphSupport::SimPaths(const GS_v s, const GS_v t)
 {
-  if(_n >= 255) return -1; // 8bit-v;
+  //if(_n >= 255) return -1; // 8bit-v;
+  if(_n >= 65535) return -1; // 16bit-v;
   if(s < 1 || s > _n) return -1;
   if(t < 1 || t > _n) return -1;
   if(s == t) return 1;
@@ -619,13 +619,13 @@ ZBDD GraphSupport::SimPaths(const GS_v s, const GS_v t)
   g.SetHamilton(_hamilton);
 
   int v = g.BDDvarOfEdge(0);
-  g.SetCond(_f.Change(v)); // for ZDD-constrained enum.
   return g.SimCycles().OnSet0(v);
 }
 
 ZBDD GraphSupport::SimCycles()
 {
-  if(_n >= 255) return -1; // 8bit-v;
+  //if(_n >= 255) return -1; // 8bit-v;
+  if(_n >= 65535) return -1; // 16bit-v;
   if(_n < 3) return 0;
 
   G = this;
@@ -634,10 +634,10 @@ ZBDD GraphSupport::SimCycles()
   ZBDD h = EnumCycles(0);
 
 #ifdef DEBUG
-  int a = 0;
+  bddword a = 0;
   for(int i=0; i<_m; i++)
   {
-    int size = _e[i]._casize;
+    bddword size = _e[i]._casize;
     a += size;
     cout << i << " " << size << "\n";
   }

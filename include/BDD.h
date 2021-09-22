@@ -1,6 +1,6 @@
 /********************************************
- * BDD+ Manipulator (SAPPORO-1.59) - Header *
- * (C) Shin-ichi MINATO  (Dec. 10, 2013)    *
+ * BDD+ Manipulator (SAPPORO-1.83) - Header *
+ * (C) Shin-ichi MINATO  (Mar. 23, 2017)    *
  ********************************************/
 
 class BDD;
@@ -36,8 +36,6 @@ extern const int BDDV_MaxLen;
 extern const int BDDV_MaxLenImport;
 
 //--------- Stack overflow limitter ---------
-extern const int BDD_RecurLimit;
-extern int BDD_RecurCount;
 #define BDD_RECUR_INC \
   {if(++BDD_RecurCount >= BDD_RecurLimit) \
   BDDerr("BDD_RECUR_INC:Stack overflow ", (bddword) BDD_RecurCount);}
@@ -104,7 +102,7 @@ public:
 };
 
 //--------- External functions for BDD ---------
-extern void    BDD_Init(bddword, bddword);
+extern int     BDD_Init(bddword, bddword);
 extern int     BDD_NewVarOfLev(int);
 extern int     BDD_VarUsed(void);
 extern bddword BDD_Used(void);
@@ -269,7 +267,7 @@ public:
 };
 
 //----- External functions for BDDV ---------
-extern void    BDDV_Init(bddword, bddword);
+extern int     BDDV_Init(bddword, bddword);
 extern int     BDDV_NewVarOfLev(int);
 extern BDDV operator||(const BDDV&, const BDDV&);
 extern BDDV BDDV_Mask1(int, int);

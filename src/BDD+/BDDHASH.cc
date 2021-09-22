@@ -1,7 +1,7 @@
 /****************************************
- * BDD+ Manipulator (SAPPORO-1.59)      *
+ * BDD+ Manipulator (SAPPORO-1.82)      *
  * (Hash table methods)                 *
- * (C) Shin-ichi MINATO (Dec. 10, 2013) *
+ * (C) Shin-ichi MINATO (Mar. 20, 2017) *
  ****************************************/
 
 #include "BDD.h"
@@ -52,6 +52,7 @@ void BDD_Hash::Enlarge()
   BDD_Entry* oldWheel = _wheel;
 
   _hashSize <<= 2;
+  _wheel = 0;
   _wheel = new BDD_Entry[_hashSize];
   if(_wheel == 0)
   {

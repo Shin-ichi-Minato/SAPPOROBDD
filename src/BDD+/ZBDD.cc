@@ -797,8 +797,8 @@ ZBDDV ZBDDV_Import(FILE *strm)
   bddword hashsize;
   ZBDD f, f0, f1;
   char s[256];
-  bddword *hash1;
-  ZBDD *hash2;
+  bddword *hash1 = 0;
+  ZBDD *hash2 = 0;
 
   if(fscanf(strm, "%s", &s) == EOF) return ZBDDV(-1);
   if(strcmp(s, "_i") != 0) return ZBDDV(-1);

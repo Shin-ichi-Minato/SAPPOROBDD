@@ -1,6 +1,6 @@
 /************************************************
- * GraphSupport class (SAPPORO-1.59) - Header   *
- * (C) Shin-ichi MINATO  (Frb. 26, 2017)        *
+ * GraphSupport class (SAPPORO-1.83) - Header   *
+ * (C) Shin-ichi MINATO  (Mar. 23, 2017)        *
  ************************************************/
 
 class GraphSupport;
@@ -10,7 +10,8 @@ class GraphSupport;
 
 #include "ZBDD.h"
 
-typedef unsigned char GS_v;
+//typedef unsigned char GS_v; // up to 254 vertices.
+typedef unsigned short GS_v; // more than 255 vertices.
 typedef unsigned short GS_e;
 extern const char GS_fix0;
 extern const char GS_fix1;
@@ -46,8 +47,8 @@ public:
     char _io[2]; // for SimPaths
     char _preset; // for SimPaths
     GS_v _mtwid; //for SimPaths
-    int _casize; // for SimPaths
-    int _caent; // for SimPaths
+    bddword _casize; // for SimPaths
+    bddword _caent; // for SimPaths
 
     GS_v* _map; // for SimPaths
     GS_v* _cfg; // for SimPaths

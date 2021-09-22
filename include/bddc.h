@@ -1,6 +1,6 @@
 /*****************************************
-*  BDD Package (SAPPORO-1.57)   - Header *
-*  (C) Shin-ichi MINATO  (June 14, 2013) *
+*  BDD Package (SAPPORO-1.83)   - Header *
+*  (C) Shin-ichi MINATO  (Mar 23, 2017)  *
 ******************************************/
 
 #ifndef bddc_h
@@ -30,10 +30,6 @@
 #define B_VAL_MASK  (B_MSB_MASK - 1U)
                       /* Mask of value-field */
 
-/***************** For stack overflow limit *****************/
-extern const int BDD_RecurLimit;
-extern int BDD_RecurCount;
- 
 /***************** External typedef *****************/
 typedef unsigned int bddvar;
 #ifdef B_64
@@ -58,6 +54,10 @@ typedef unsigned int bddvar;
   extern "C" {
 #endif /* BDD_CPP */
 
+/***************** For stack overflow limit *****************/
+extern const int BDD_RecurLimit;
+extern int BDD_RecurCount;
+ 
 /***************** External operations *****************/
 
 /***************** Init. and config. ****************/

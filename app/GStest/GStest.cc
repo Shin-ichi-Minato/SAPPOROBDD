@@ -5,7 +5,11 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-  BDDV_Init(256, 100000000);
+  if(BDDV_Init(256, 200000000))
+  {
+    cerr << "malloc failed.\n";
+    return 1;
+  }
 
   FILE *fp = 0;
   if(argc == 1) fp = stdin;
@@ -20,7 +24,7 @@ int main(int argc, char *argv[])
 
   GraphSupport g;
   g.Import(fp);
-//g.Print();
+
   /*
   ZBDD f = 1;
   for(int i=0; i<g._m; i++)
@@ -37,6 +41,7 @@ int main(int argc, char *argv[])
 
   g.SetHamilton(0);
   ZBDD h;
+  //h = g.SimCycles();
   h = g.SimPaths(1, g._n);
   h.Print();
   //h.PrintPla();

@@ -1,7 +1,7 @@
  /***************************************
- * BDD+ Manipulator (SAPPORO-1.70)      *
+ * BDD+ Manipulator (SAPPORO-1.81)      *
  * (Basic methods)                      *
- * (C) Shin-ichi MINATO (Sep. 16, 2015) *
+ * (C) Shin-ichi MINATO (Mar. 9, 2017)  *
  ****************************************/
 
 #include "BDD.h"
@@ -106,10 +106,11 @@ BDD BDD::Spread(const int& k) const
 
 //----- External functions for BDD -------
 
-void BDD_Init(bddword init, bddword limit)
+int BDD_Init(bddword init, bddword limit)
 {
-  bddinit(init, limit);
+  if(bddinit(init, limit)) return 1;
   BDDV_Active = 0;
+  return 0;
 }
 	
 int BDD_NewVarOfLev(int lev)
@@ -303,11 +304,12 @@ void BDDV::Print() const
 
 //----- External functions for BDD Vector -------
 
-void BDDV_Init(bddword init, bddword limit)
+int BDDV_Init(bddword init, bddword limit)
 {
-  bddinit(init, limit);
+  if(bddinit(init, limit)) return 1;
   for(int i=0; i<BDDV_SysVarTop; i++) bddnewvar();
   BDDV_Active = 1;
+  return 0;
 }
 	
 BDDV operator||(const BDDV& fv, const BDDV& gv)
@@ -357,8 +359,8 @@ BDDV BDDV_Import(FILE *strm)
   bddword hashsize;
   BDD f, f0, f1;
   char s[256];
-  bddword *hash1;
-  BDD *hash2;
+  bddword *hash1 = 0;
+  BDD *hash2 = 0;
 
   if(fscanf(strm, "%s", &s) == EOF) return BDDV(-1);
   if(strcmp(s, "_i") != 0) return BDDV(-1);

@@ -1,6 +1,6 @@
 /*******************************************
- * BDD - Decomposition Graph (SAPPORO-1.59)*
- * (C) Shin-ichi MINATO (Dec. 10, 2013)    *
+ * BDD - Decomposition Graph (SAPPORO-1.82)*
+ * (C) Shin-ichi MINATO (MAr. 20, 2017)    *
  *******************************************/
 
 #include "BDDDG.h"
@@ -123,7 +123,9 @@ int BDDDG::EnlargeNode()
 {
   bddword oldHS = _nodeSize << 1;
   Node* oldArray = _nodeA;
+  _nodeA = 0;
   bddword* oldWheel = _hashWheel;
+  _hashWheel = 0;
 
   _nodeSize <<= 2;
   _nodeA = new Node[_nodeSize];
@@ -171,6 +173,7 @@ bddword BDDDG::NewLkx(bddword idx)
 int BDDDG::EnlargeLink()
 {
   NodeLink* oldArray = _linkA;
+  _linkA = 0;
 
   _linkSize <<= 2;
   _linkA = new NodeLink[_linkSize];
