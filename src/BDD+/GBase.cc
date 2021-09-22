@@ -1,7 +1,7 @@
 /****************************************
- * Graph Base class (SAPPORO-1.84)      *
+ * Graph Base class (SAPPORO-1.87)      *
  * (Main part)                          *
- * (C) Shin-ichi MINATO (Sep. 12, 2020) *
+ * (C) Shin-ichi MINATO (May 12, 2021)  *
  ****************************************/
 
 #include "GBase.h"
@@ -107,11 +107,11 @@ int GBase::Import(FILE *strm)
 {
   char s[256];
 
-  do if(fscanf(strm, "%s", &s) == EOF) return 1;
+  do if(fscanf(strm, "%s", s) == EOF) return 1;
   while(s[0] == '#');
   int n = strtol(s, NULL, 10);
 
-  do if(fscanf(strm, "%s", &s) == EOF) return 1;
+  do if(fscanf(strm, "%s", s) == EOF) return 1;
   while(s[0] == '#');
   int m = strtol(s, NULL, 10);
 
@@ -119,21 +119,21 @@ int GBase::Import(FILE *strm)
 
   GB_v v;
   GB_e e = 0;
-  do if(fscanf(strm, "%s", &s) == EOF) { if(m > 0) e = 1; break; }
+  do if(fscanf(strm, "%s", s) == EOF) { if(m > 0) e = 1; break; }
   while(s[0] == '#');
   for(int i=0; i<m; i++)
   {
     v = strtol(s, NULL, 10);
     if(v <= 0 || v > n) { e = 1; break; }
     _e[i]._ev[0] = v;
-    do if(fscanf(strm, "%s", &s) == EOF) { e = 1; break; }
+    do if(fscanf(strm, "%s", s) == EOF) { e = 1; break; }
     while(s[0] == '#');
     v = strtol(s, NULL, 10);
     if(v <= 0 || v > n) { e = 1; break; }
     _e[i]._ev[1] = v;
     do
     {
-      if(fscanf(strm, "%s", &s) == EOF)
+      if(fscanf(strm, "%s", s) == EOF)
       {
         if(i < m - 1) e = 1;
         break;

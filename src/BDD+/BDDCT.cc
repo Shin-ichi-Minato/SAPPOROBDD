@@ -1,6 +1,6 @@
 /****************************************
- * BDD Cost Table class - Body v1.01    *
- * (C) Shin-ichi MINATO (Sep. 10, 2020) *
+ * BDD Cost Table class - Body v1.87    *
+ * (C) Shin-ichi MINATO (May 12, 2021)  *
  ****************************************/
 
 #include "BDDCT.h"
@@ -73,22 +73,22 @@ int BDDCT::Alloc(const int n, const bddcost cost)
 int BDDCT::Import(FILE *fp)
 {
   char s[256];
-  do if(fscanf(fp, "%s", &s) == EOF) return 1;
+  do if(fscanf(fp, "%s", s) == EOF) return 1;
   while(s[0] == '#'); // go next word
   int n = strtol(s, NULL, 10);
   if(Alloc(n)) return 1;
 
-  do if(fscanf(fp, "%s", &s) == EOF) return 1;
+  do if(fscanf(fp, "%s", s) == EOF) return 1;
   while(s[0] == '#'); // go next word
   int e = 0;
   for(int ix=0; ix<_n; ix++)
   {
     if(e = SetCost(ix, strtol(s, NULL, 10))) break;
-    if(fscanf(fp, "%s", &s) == EOF) { if(ix<_n-1) e = 1; break; }
+    if(fscanf(fp, "%s", s) == EOF) { if(ix<_n-1) e = 1; break; }
     if(s[0] == '#') 
     {
       if(e = SetLabel(ix, s+1)) break;
-      do if(fscanf(fp, "%s", &s) == EOF) { if(ix<_n-1) e = 1; break; }
+      do if(fscanf(fp, "%s", s) == EOF) { if(ix<_n-1) e = 1; break; }
       while(s[0] == '#'); // go next word
     }
   }
@@ -339,6 +339,7 @@ bddcost BDDCT::MaxCost(const ZBDD& f)
   return MaxC(f);
 }
 
+/*
 static ZBDD CLE(const ZBDD &, const bddcost);
 ZBDD CLE(const ZBDD& f, const bddcost spent)
 {
@@ -355,14 +356,56 @@ ZBDD CLE(const ZBDD& f, const bddcost spent)
   h += CLE(f.OnSet0(top), spent + cost).Change(top);
   return h;
 }
+*/
+
+static bddcost RetMin;
+static bddcost RetMax;
+static ZBDD CLE(const ZBDD &, const bddcost);
+ZBDD CLE(const ZBDD& f, const bddcost spent)
+{
+  if(f == 0)
+  {
+    RetMin = bddcost_null; RetMax = bddcost_null;
+    return 0;
+  }
+  if(f == 1)
+  {
+    RetMin = 0; RetMax = 0;
+    return (B >= spent)? 1: 0;
+  }
+  bddcost min = CT->CacheRef(4, f.GetID());
+  bddcost max = CT->CacheRef(5, f.GetID());
+  RetMin = min; RetMax = max;
+  if(min != bddcost_null) if(B < min + spent) return 0;
+  if(max != bddcost_null) if(B >= max + spent) return f;
+  int top = f.Top();
+  int tlev = BDD_LevOfVar(top);
+  ZBDD h = CLE(f.OffSet(top), spent);
+  int min0 = RetMin;
+  int max0 = RetMax;
+  bddcost cost = CT->CostOfLev(tlev);
+  h += CLE(f.OnSet0(top), spent + cost).Change(top);
+  if(min == bddcost_null)
+  {
+    min = RetMin + cost;
+    if(min0 != bddcost_null) min = (min0 <= min)? min0: min;
+    CT->CacheEnt(4, f.GetID(), min);
+  }
+  if(max == bddcost_null)
+  {
+    max = RetMax + cost;
+    if(max0 != bddcost_null) max = (max0 >= max)? max0: max;
+    CT->CacheEnt(5, f.GetID(), max);
+  }
+  RetMin = min; RetMax = max;
+  return h;
+}
 
 ZBDD BDDCT::ZBDD_CostLE(const ZBDD& f, const bddcost bound)
 {
   N = _n;
   CT = this;
   B = bound;
-  MinCost(f);
-  MaxCost(f);
   ZBDD h = CLE(f, 0);
   return h;
 }

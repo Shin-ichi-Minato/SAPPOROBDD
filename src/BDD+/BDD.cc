@@ -1,7 +1,7 @@
  /***************************************
- * BDD+ Manipulator (SAPPORO-1.86)      *
+ * BDD+ Manipulator (SAPPORO-1.87)      *
  * (Basic methods)                      *
- * (C) Shin-ichi MINATO (Aug. 15, 2020) *
+ * (C) Shin-ichi MINATO (May 12, 2021)  *
  ****************************************/
 
 #include "BDD.h"
@@ -362,20 +362,20 @@ BDDV BDDV_Import(FILE *strm)
   bddword *hash1 = 0;
   BDD *hash2 = 0;
 
-  if(fscanf(strm, "%s", &s) == EOF) return BDDV(-1);
+  if(fscanf(strm, "%s", s) == EOF) return BDDV(-1);
   if(strcmp(s, "_i") != 0) return BDDV(-1);
-  if(fscanf(strm, "%s", &s) == EOF) return BDDV(-1);
+  if(fscanf(strm, "%s", s) == EOF) return BDDV(-1);
   int n = strtol(s, NULL, 10);
   while(n > BDD_TopLev()) BDD_NewVar();
 
-  if(fscanf(strm, "%s", &s) == EOF) return BDDV(-1);
+  if(fscanf(strm, "%s", s) == EOF) return BDDV(-1);
   if(strcmp(s, "_o") != 0) return BDDV(-1);
-  if(fscanf(strm, "%s", &s) == EOF) return BDDV(-1);
+  if(fscanf(strm, "%s", s) == EOF) return BDDV(-1);
   int m = strtol(s, NULL, 10);
 
-  if(fscanf(strm, "%s", &s) == EOF) return BDDV(-1);
+  if(fscanf(strm, "%s", s) == EOF) return BDDV(-1);
   if(strcmp(s, "_n") != 0) return BDDV(-1);
-  if(fscanf(strm, "%s", &s) == EOF) return BDDV(-1);
+  if(fscanf(strm, "%s", s) == EOF) return BDDV(-1);
   bddword n_nd = B_STRTOI(s, NULL, 10);
 
   for(hashsize = 1; hashsize < (n_nd<<1); hashsize <<= 1)
@@ -393,14 +393,14 @@ BDDV BDDV_Import(FILE *strm)
   e = 0;
   for(bddword ix=0; ix<n_nd; ix++)
   {
-    if(fscanf(strm, "%s", &s) == EOF) { e = 1; break; }
+    if(fscanf(strm, "%s", s) == EOF) { e = 1; break; }
     bddword nd = B_STRTOI(s, NULL, 10);
     
-    if(fscanf(strm, "%s", &s) == EOF) { e = 1; break; }
+    if(fscanf(strm, "%s", s) == EOF) { e = 1; break; }
     int lev = strtol(s, NULL, 10);
     int var = bddvaroflev(lev);
 
-    if(fscanf(strm, "%s", &s) == EOF) { e = 1; break; }
+    if(fscanf(strm, "%s", s) == EOF) { e = 1; break; }
     if(strcmp(s, "F") == 0) f0 = 0;
     else if(strcmp(s, "T") == 0) f0 = 1;
     else
@@ -418,7 +418,7 @@ BDDV BDDV_Import(FILE *strm)
       f0 = hash2[ixx];
     }
 
-    if(fscanf(strm, "%s", &s) == EOF) { e = 1; break; }
+    if(fscanf(strm, "%s", s) == EOF) { e = 1; break; }
     if(strcmp(s, "F") == 0) f1 = 0;
     else if(strcmp(s, "T") == 0) f1 = 1;
     else
@@ -464,7 +464,7 @@ BDDV BDDV_Import(FILE *strm)
   BDDV v = BDDV();
   for(int i=0; i<m; i++)
   {
-    if(fscanf(strm, "%s", &s) == EOF)
+    if(fscanf(strm, "%s", s) == EOF)
     {
       delete[] hash2;
       delete[] hash1;
@@ -502,7 +502,7 @@ BDDV BDDV_ImportPla(FILE *strm, int sopf)
   int m = 0;
   int mode = 1; // 0:f 1:fd 2:fr 3:fdr
 
-  do if(fscanf(strm, "%s", &s) == EOF) return BDDV(-1);
+  do if(fscanf(strm, "%s", s) == EOF) return BDDV(-1);
   while(s[0] == '#');
 
   // declaration part 
@@ -510,19 +510,19 @@ BDDV BDDV_ImportPla(FILE *strm, int sopf)
   {
     if(strcmp(s, ".i") == 0)
     {
-      if(fscanf(strm, "%s", &s) == EOF)
+      if(fscanf(strm, "%s", s) == EOF)
       { cerr << "unexpected eof.\n"; return BDDV(-1);}
       n = strtol(s, NULL, 10);
     }
     else if(strcmp(s, ".o") == 0)
     {
-      if(fscanf(strm, "%s", &s) == EOF)
+      if(fscanf(strm, "%s", s) == EOF)
       { cerr << "unexpected eof.\n"; return BDDV(-1);}
       m = strtol(s, NULL, 10);
     }
     else if(strcmp(s, ".type") == 0)
     {
-      if(fscanf(strm, "%s", &s) == EOF)
+      if(fscanf(strm, "%s", s) == EOF)
       { cerr << "unexpected eof.\n"; return BDDV(-1);}
       if(strcmp(s, "f") == 0) mode = 0;
       else if(strcmp(s, "fd") == 0) mode = 1;
@@ -532,10 +532,10 @@ BDDV BDDV_ImportPla(FILE *strm, int sopf)
     }
     else 
     {
-      if(fscanf(strm, "%s", &s) == EOF)
+      if(fscanf(strm, "%s", s) == EOF)
       { cerr << "unexpected eof.\n"; return BDDV(-1);}
     }
-    if(fscanf(strm, "%s", &s) == EOF)
+    if(fscanf(strm, "%s", s) == EOF)
     { cerr << "unexpected eof.\n"; return BDDV(-1);}
   }
   
@@ -570,7 +570,7 @@ BDDV BDDV_ImportPla(FILE *strm, int sopf)
         return BDDV(-1);
       }
     }
-    if(fscanf(strm, "%s", &s) == EOF)
+    if(fscanf(strm, "%s", s) == EOF)
     { cerr << "unexpected eof.\n"; return BDDV(-1);}
     if(strlen(s) != m) 
     { cerr << "error at output symbol.\n"; return BDDV(-1);}
@@ -595,7 +595,7 @@ BDDV BDDV_ImportPla(FILE *strm, int sopf)
         return BDDV(-1);
       }
     }
-    if(fscanf(strm, "%s", &s) == EOF)
+    if(fscanf(strm, "%s", s) == EOF)
     { cerr << "unexpected eof.\n"; return BDDV(-1);}
   }
 
