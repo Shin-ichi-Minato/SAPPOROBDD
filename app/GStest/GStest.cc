@@ -5,7 +5,7 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-  if(BDDV_Init(256, 200000000))
+  if(BDDV_Init(256, 60000000))
   {
     cerr << "malloc failed.\n";
     return 1;
@@ -46,12 +46,9 @@ int main(int argc, char *argv[])
   h.Print();
   //h.PrintPla();
 
-/*
-  CtoI hv = h;
-  char s[256];
-  hv.CountTerms().StrNum10(s);
-  cout << "terms: " << s << "\n";
-*/
+  char s[129];
+  h.CardMP16(s);
+  cout << "terms: 0x" << s << "\n";
   return 0;
 }
 

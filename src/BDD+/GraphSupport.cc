@@ -1,7 +1,7 @@
 /****************************************
  * GraphSopport class (SAPPORO-1.83)    *
  * (Main part)                          *
- * (C) Shin-ichi MINATO (Mar. 24, 2017) *
+ * (C) Shin-ichi MINATO (Mar. 25, 2017) *
  ****************************************/
 
 #include "GraphSupport.h"
@@ -193,6 +193,7 @@ const char GS_fix0 = 1;
 const char GS_fix1 = 2;
 
 #ifdef DEBUG
+static GS_v _maxwid;
 static bddword _ent_a;
 static bddword _ref;
 static bddword _col;
@@ -361,7 +362,9 @@ int EnumCyclesInit()
   }
 
   // count _mtwid[ix] and set _io[ix], _maxwid, _lastin
-  G->_maxwid = 0;
+#ifdef DEBUG
+  _maxwid = 0;
+#endif // DEBUG
   G->_lastin = 0;
   for(int i=0; i<_m; i++)
   {
@@ -381,7 +384,9 @@ int EnumCyclesInit()
 	_e[i]._mtwid--;
       }
     }
-    G->_maxwid = (G->_maxwid < _e[i]._mtwid)? _e[i]._mtwid: G->_maxwid;
+#ifdef DEBUG
+    _maxwid = (_maxwid < _e[i]._mtwid)? _e[i]._mtwid: _maxwid;
+#endif // DEBUG
   }
 
   for(int i=0; i<_m; i++)
@@ -389,9 +394,7 @@ int EnumCyclesInit()
     // malloc and init _map
 
     if(_e[i]._map) { delete[] _e[i]._map; _e[i]._map = 0; }
-    if(!(_e[i]._map = new GS_v[G->_maxwid])) return 1;
-
-    for(int j=0; j<G->_maxwid; j++) _e[i]._map[j] = 0;
+    if(!(_e[i]._map = new GS_v[_e[i]._mtwid])) return 1;
 
     // set _map
     int k = 0;
@@ -476,7 +479,9 @@ int EnumCyclesInit()
     for(int j=0; j<_e[i]._mtwid; j++) cout << (int)_e[i]._map[j];
     cout << "\n";
   }
-  cout << (int)G->_maxwid << "\n\n";
+#ifdef DEBUG
+  cout << (int) _maxwid << "\n\n";
+#endif // DEBUG
   */
 
   return 0;

@@ -1,6 +1,6 @@
 /************************************************
  * GraphSupport class (SAPPORO-1.83) - Header   *
- * (C) Shin-ichi MINATO  (Mar. 23, 2017)        *
+ * (C) Shin-ichi MINATO  (Mar. 25, 2017)        *
  ************************************************/
 
 class GraphSupport;
@@ -66,7 +66,6 @@ public:
   Vertex* _v;
   Edge* _e;
 
-  GS_v _maxwid; // for SimPaths
   GS_e _lastin; //for HamPaths
 
   int _hamilton;

@@ -1,6 +1,6 @@
 CC	= g++
 
-#OPT 	= -g -O2 
+#OPT 	= -O3 
 OPT = -O3 -DB_64
 
 OBJ	= GStest.o
@@ -16,6 +16,7 @@ all:	$(PROGRAM)
 $(PROGRAM): $(OBJ)
 	$(CC) $(OPT) $(INCLUDE) \
 	$(OBJ) $(LIBDIR)/BDD64.a -o $(PROGRAM)
+#	$(OBJ) $(LIBDIR)/BDD.a -o $(PROGRAM)
 
 GStest.o: GStest.cc
 	$(CC) $(INCLUDE) $(OPT) -c GStest.cc

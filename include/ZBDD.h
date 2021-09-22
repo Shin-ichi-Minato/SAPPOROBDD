@@ -1,6 +1,6 @@
 /*********************************************
- * ZBDD+ Manipulator (SAPPORO-1.58) - Header *
- * (C) Shin-ichi MINATO  (Nov. 22, 2013)     *
+ * ZBDD+ Manipulator (SAPPORO-1.84) - Header *
+ * (C) Shin-ichi MINATO  (Apr. 2, 2017)      *
  *********************************************/
 
 class ZBDD;
@@ -73,6 +73,7 @@ public:
   bddword Card(void) const { return bddcard(_zbdd); }
   bddword Lit(void) const { return bddlit(_zbdd); }
   bddword Len(void) const { return bddlen(_zbdd); }
+  char* CardMP16(char* s) const { return bddcardmp16(_zbdd, s); }
 
   void Export(FILE *strm = stdout) const;
   void XPrint(void) const;
