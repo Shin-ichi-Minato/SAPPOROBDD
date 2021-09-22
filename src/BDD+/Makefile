@@ -1,7 +1,7 @@
 CC	= g++
 DIR	= ../..
 INCL    = $(DIR)/include
-OPT	= -O3 -Wall -W -I$(INCL)
+OPT	= -O3 -Wall -Wextra -Wshadow -I$(INCL)
 OPT64  = $(OPT) -DB_64
 
 LIB32	= $(DIR)/lib/BDD32.a

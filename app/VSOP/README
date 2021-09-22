@@ -5,6 +5,5 @@ Command syntax:
 
 vsop         sparc executable file.
 vsop.help    help text file referred by bemII.
-vsop.man     program manual (in Japanese).
-COPYRIGHT    copyright form
+vsop-man.pdf program manual (in Japanese).
 README       this file.

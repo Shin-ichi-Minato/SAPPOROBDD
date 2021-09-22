@@ -1,7 +1,7 @@
 /****************************************
- * Graph Base class (SAPPORO-1.87)      *
+ * Graph Base class (SAPPORO-1.91)      *
  * (Main part)                          *
- * (C) Shin-ichi MINATO (May 12, 2021)  *
+ * (C) Shin-ichi MINATO (Sep 3, 2021)   *
  ****************************************/
 
 #include "GBase.h"
@@ -461,7 +461,7 @@ int EnumCyclesInit()
   }
 
   // malloc MateCache
-  for(int i=0; i<_m; i++)
+  for(i=0; i<_m; i++)
   {
     if(_e[i]._casize != 0)
     {
@@ -476,7 +476,7 @@ int EnumCyclesInit()
   }
 
   // malloc and init cfg
-  for(int i=0; i<_m; i++)
+  for(i=0; i<_m; i++)
   {
     if(_e[i]._cfg) { delete[] _e[i]._cfg; _e[i]._cfg = 0; }
     if(!(_e[i]._cfg = new GB_v[_n])) return 1;
@@ -485,20 +485,6 @@ int EnumCyclesInit()
   }
 
   _e[0]._f = G->_f; // for ZDD-constrained enumeration
-
-  /*
-  for(int i=0; i<_n; i++) cout << (int)_v[i]._deg << "\n";
-  for(int i=0; i<_m; i++)
-  {
-    cout << (int)_e[i]._mtwid << " ";
-    for(int j=0; j<_e[i]._mtwid; j++) cout << (int)_e[i]._map[j];
-    cout << "\n";
-  }
-#ifdef DEBUG
-  cout << (int) _maxwid << "\n\n";
-#endif // DEBUG
-  */
-
   return 0;
 }
 

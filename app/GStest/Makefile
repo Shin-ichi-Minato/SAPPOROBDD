@@ -1,7 +1,7 @@
 CC	= g++
 
 #OPT 	= -O3 
-OPT = -O3 -DB_64
+OPT = -O3 -Wall -Wextra -Wshadow -DB_64
 
 OBJ	= GStest.o
 

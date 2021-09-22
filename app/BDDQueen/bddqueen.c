@@ -173,10 +173,10 @@ int main(int argc, char *argv[])
         y = j; 
         if(x < 0 || x >= q) continue;
         if(y < 0 || y >= q) continue;
-        bddp X0 = bddnot(X[x][y]);
-        bddp G0 = bddand(F0, X0);
-        bddp G01 = bddand(F0, X[x][y]);
-        bddp G11 = bddand(F1, X0);
+        X0 = bddnot(X[x][y]);
+        G0 = bddand(F0, X0);
+        G01 = bddand(F0, X[x][y]);
+        G11 = bddand(F1, X0);
         bddfree(X0);
         bddfree(F0);
         bddfree(F1);

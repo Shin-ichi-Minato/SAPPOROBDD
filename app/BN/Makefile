@@ -1,5 +1,5 @@
 CC	= g++
-OPT 	= -O2 -DYY_ALWAYS_INTERACTIVE 
+OPT 	= -O3 -Wall -Wextra -Wshadow -DYY_ALWAYS_INTERACTIVE 
 OBJ	= table.o lex.bn.o y.tab.o yywrap.o
 PROGRAM = bn
 YACC	= yacc -p bn

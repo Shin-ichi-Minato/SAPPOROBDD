@@ -1,7 +1,7 @@
 /*****************************************
- * Multi-Level ZBDDV class (SAPPORO-1.59)*
+ * Multi-Level ZBDDV class (SAPPORO-1.91)*
  * (Main part)                           *
- * (C) Shin-ichi MINATO (Dec. 10, 2013)  *
+ * (C) Shin-ichi MINATO (Sep. 3, 2021)   *
  *****************************************/
 
 #include "MLZBDDV.h"
@@ -119,11 +119,11 @@ MLZBDDV::MLZBDDV(ZBDDV& zbddv, int pin, int out)
       {
         if(i != j)
         {
-	  ZBDD f = _zbddv.GetZBDD(j);
+	  f = _zbddv.GetZBDD(j);
           int ft = BDD_LevOfVar(f.Top());
 	  if(ft >= pt)
 	  {
-	    ZBDD q = f / p;
+	    q = f / p;
 	    if(q != 0)
 	    {
 	      _zbddv -= ZBDDV(f, j);

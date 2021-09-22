@@ -12,7 +12,7 @@ PRG64   = isop
 PRG_ST  = isop32-static
 PRG64_ST = isop-static
 
-OPT 	= -O2 -DYY_ALWAYS_INTERACTIVE -I$(INCL)
+OPT 	= -O3 -Wall -Wextra -Wshadow -DYY_ALWAYS_INTERACTIVE -I$(INCL)
 OPT64   = $(OPT) -DB_64
 OPT_ST  = $(OPT) -DB_STATIC -static
 OPT64_ST = $(OPT64) -DB_STATIC -static

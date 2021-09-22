@@ -1,7 +1,7 @@
 CC    = gcc
 DIR   = ../..
 INCL  = $(DIR)/include
-OPT   = -O3 -Wall -W -I$(INCL)
+OPT   = -O3 -Wall -Wextra -Wshadow -I$(INCL)
 OPT64 = $(OPT) -DB_64
 
 all: bddc_64.o

@@ -1,5 +1,5 @@
 make    ...... Install bddqueen.
-make 64 ...... Install bddqueen using 64bit integers.
+make 32 ...... Install bddqueen using 32bit machine.
 
 (usage)
 bddqueen <problem_size> [<bdd_node_limit>]

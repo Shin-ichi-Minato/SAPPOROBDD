@@ -1,6 +1,6 @@
 /****************************************
- * BDD Cost Table class - Body v1.87    *
- * (C) Shin-ichi MINATO (May 14, 2021)  *
+ * BDD Cost Table class - Body v1.91    *
+ * (C) Shin-ichi MINATO (Sep 3, 2021)   *
  ****************************************/
 
 #include "BDDCT.h"
@@ -248,7 +248,7 @@ void SetSubMinMax()
   CT->_submax[N-1] = (cost>0)? cost: 0;
   for(int lev=2; lev<=N; lev++)
   {
-    bddcost cost = CT->CostOfLev(lev);
+    cost = CT->CostOfLev(lev);
     CT->_submin[N-lev] = CT->_submin[N-lev+1] + ((cost>0)? 0: cost);
     CT->_submax[N-lev] = CT->_submax[N-lev+1] + ((cost>0)? cost: 0);
   }

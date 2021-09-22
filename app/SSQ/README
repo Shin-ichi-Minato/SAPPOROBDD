@@ -1,10 +1,9 @@
-Permutation Manipulator
+manipulator for Sets of SeQuences
 
 Command syntax:
- perm [-ZDDsize] [filename]
+ ssq [-ZDDsize] [filename]
 
-perm          executable file.
-perm.help     help text file referred by perm.
-perm.man      program manual (in Japanese).
-COPYRIGHT     copyright form
+ssq           executable file.
+ssq.help      help text file referred by perm.
+ssq-man.pdf   program manual (in Japanese).
 README        this file.

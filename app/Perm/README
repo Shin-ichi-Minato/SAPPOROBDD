@@ -5,6 +5,5 @@ Command syntax:
 
 perm          executable file.
 perm.help     help text file referred by perm.
-perm.man      program manual (in Japanese).
-COPYRIGHT     copyright form
+perm-man.pdf  program manual (in Japanese).
 README        this file.

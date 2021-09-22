@@ -1,6 +1,6 @@
 /*****************************************
-*  BDD Package (SAPPORO-1.87)   - Body   *
-*  (C) Shin-ichi MINATO  (May 14, 2021)  *
+*  BDD Package (SAPPORO-1.91)   - Body   *
+*  (C) Shin-ichi MINATO  (Sep 3, 2021)   *
 ******************************************/
 
 #include <stdio.h>
@@ -2246,7 +2246,7 @@ unsigned char op, skip;
   case BC_RSHIFT:
     /* Get VarID of new level */
     {
-      bddvar flev, newlev; 
+      bddvar newlev; 
   
       flev = bddlevofvar(v);
       if(op == BC_LSHIFT)
