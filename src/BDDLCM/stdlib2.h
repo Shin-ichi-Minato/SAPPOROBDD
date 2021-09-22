@@ -10,6 +10,8 @@
     Takeaki Uno, to notify the news about the codes for the users.
    For the commercial use, please make a contact to Takeaki Uno. */
 
+// Revised by Shin-ichi Minato on 2018.06.19.
+
 #ifndef _stdlib2_h_
 #define _stdlib2_h_
 
@@ -674,16 +676,16 @@ void intarray_sort (unsigned *a, size_t siz, int unit);
 #endif
 
   /* bitmasks, used for bit operations */
-extern int BITMASK_UPPER1[32];
-extern int BITMASK_UPPER1_[32];
-extern int BITMASK_LOWER1[32];
-extern int BITMASK_LOWER1_[32];
-extern int BITMASK_1[32];
-extern int BITMASK_31[32];
-extern int BITMASK_16[8];
-extern int BITMASK_UPPER16[8];
-extern int BITMASK_LOWER16[8];
-extern int BITMASK_FACT16[8];
+extern unsigned int BITMASK_UPPER1[32];
+extern unsigned int BITMASK_UPPER1_[32];
+extern unsigned int BITMASK_LOWER1[32];
+extern unsigned int BITMASK_LOWER1_[32];
+extern unsigned int BITMASK_1[32];
+extern unsigned int BITMASK_31[32];
+extern unsigned int BITMASK_16[8];
+extern unsigned int BITMASK_UPPER16[8];
+extern unsigned int BITMASK_LOWER16[8];
+extern unsigned int BITMASK_FACT16[8];
 
 
 #endif

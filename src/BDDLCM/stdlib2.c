@@ -10,6 +10,8 @@
     Takeaki Uno, to notify the news about the codes for the users.
    For the commercial use, please make a contact to Takeaki Uno. */
 
+// Revised by Shin-ichi Minato on 2018.06.19.
+
 #ifndef _stdlib2_c_
 #define _stdlib2_c_
 
@@ -50,7 +52,7 @@ QSORT_TYPE (VEC_VAL2, VEC_VAL2)
 QSORT_TYPE (FILE_COUNT_INT, FILE_COUNT_INT)
 
   /* bitmasks, used for bit operations */
-int BITMASK_UPPER1[32] = { 0xffffffff, 0xfffffffe, 0xfffffffc, 0xfffffff8,
+unsigned int BITMASK_UPPER1[32] = { 0xffffffff, 0xfffffffe, 0xfffffffc, 0xfffffff8,
                            0xfffffff0, 0xffffffe0, 0xffffffc0, 0xffffff80,
                            0xffffff00, 0xfffffe00, 0xfffffc00, 0xfffff800,
                            0xfffff000, 0xffffe000, 0xffffc000, 0xffff8000,
@@ -58,7 +60,7 @@ int BITMASK_UPPER1[32] = { 0xffffffff, 0xfffffffe, 0xfffffffc, 0xfffffff8,
                            0xfff00000, 0xffe00000, 0xffc00000, 0xff800000,
                            0xff000000, 0xfe000000, 0xfc000000, 0xf8000000,
                            0xf0000000, 0xe0000000, 0xc0000000, 0x80000000 };
-int BITMASK_UPPER1_[32] = { 0xfffffffe, 0xfffffffc, 0xfffffff8, 0xfffffff0,
+unsigned int BITMASK_UPPER1_[32] = { 0xfffffffe, 0xfffffffc, 0xfffffff8, 0xfffffff0,
                             0xffffffe0, 0xffffffc0, 0xffffff80, 0xffffff00,
                             0xfffffe00, 0xfffffc00, 0xfffff800, 0xfffff000,
                             0xffffe000, 0xffffc000, 0xffff8000, 0xffff0000,
@@ -67,7 +69,7 @@ int BITMASK_UPPER1_[32] = { 0xfffffffe, 0xfffffffc, 0xfffffff8, 0xfffffff0,
                             0xfe000000, 0xfc000000, 0xf8000000, 0xf0000000,
                             0xe0000000, 0xc0000000, 0x80000000, 0x00000000 };
 
-int BITMASK_LOWER1[32] = { 0x00000000, 0x00000001, 0x00000003, 0x00000007,
+unsigned int BITMASK_LOWER1[32] = { 0x00000000, 0x00000001, 0x00000003, 0x00000007,
                            0x0000000f, 0x0000001f, 0x0000003f, 0x0000007f,
                            0x000000ff, 0x000001ff, 0x000003ff, 0x000007ff,
                            0x00000fff, 0x00001fff, 0x00003fff, 0x00007fff,
@@ -75,7 +77,7 @@ int BITMASK_LOWER1[32] = { 0x00000000, 0x00000001, 0x00000003, 0x00000007,
                            0x000fffff, 0x001fffff, 0x003fffff, 0x007fffff,
                            0x00ffffff, 0x01ffffff, 0x03ffffff, 0x07ffffff,
                            0x0fffffff, 0x1fffffff, 0x3fffffff, 0x7fffffff };
-int BITMASK_LOWER1_[32] = { 0x00000001, 0x00000003, 0x00000007, 0x0000000f,
+unsigned int BITMASK_LOWER1_[32] = { 0x00000001, 0x00000003, 0x00000007, 0x0000000f,
                             0x0000001f, 0x0000003f, 0x0000007f, 0x000000ff,
                             0x000001ff, 0x000003ff, 0x000007ff, 0x00000fff,
                             0x00001fff, 0x00003fff, 0x00007fff, 0x0000ffff,
@@ -84,7 +86,7 @@ int BITMASK_LOWER1_[32] = { 0x00000001, 0x00000003, 0x00000007, 0x0000000f,
                             0x01ffffff, 0x03ffffff, 0x07ffffff, 0x0fffffff,
                             0x1fffffff, 0x3fffffff, 0x7fffffff, 0xffffffff };
 
-int BITMASK_1[32] = { 0x00000001, 0x00000002, 0x00000004, 0x00000008,
+unsigned int BITMASK_1[32] = { 0x00000001, 0x00000002, 0x00000004, 0x00000008,
                       0x00000010, 0x00000020, 0x00000040, 0x00000080,
                       0x00000100, 0x00000200, 0x00000400, 0x00000800,
                       0x00001000, 0x00002000, 0x00004000, 0x00008000,
@@ -92,7 +94,7 @@ int BITMASK_1[32] = { 0x00000001, 0x00000002, 0x00000004, 0x00000008,
                       0x00100000, 0x00200000, 0x00400000, 0x00800000,
                       0x01000000, 0x02000000, 0x04000000, 0x08000000,
                       0x10000000, 0x20000000, 0x40000000, 0x80000000 };
-int BITMASK_31[32] = { 0xfffffffe, 0xfffffffd, 0xfffffffb, 0xfffffff7,
+unsigned int BITMASK_31[32] = { 0xfffffffe, 0xfffffffd, 0xfffffffb, 0xfffffff7,
                        0xffffffef, 0xffffffdf, 0xffffffbf, 0xffffff7f,
                        0xfffffeff, 0xfffffdff, 0xfffffbff, 0xfffff7ff,
                        0xffffefff, 0xffffdfff, 0xffffbfff, 0xffff7fff,
@@ -101,13 +103,13 @@ int BITMASK_31[32] = { 0xfffffffe, 0xfffffffd, 0xfffffffb, 0xfffffff7,
                        0xfeffffff, 0xfdffffff, 0xfbffffff, 0xf7ffffff,
                        0xefffffff, 0xdfffffff, 0xbfffffff, 0x7fffffff };
 
-int BITMASK_16[8] = { 0x0000000f, 0x000000f0, 0x00000f00, 0x0000f000,
+unsigned int BITMASK_16[8] = { 0x0000000f, 0x000000f0, 0x00000f00, 0x0000f000,
                       0x000f0000, 0x00f00000, 0x0f000000, 0xf0000000 };
-int BITMASK_UPPER16[8] = { 0xffffffff, 0xfffffff0, 0xffffff00, 0xfffff000,
+unsigned int BITMASK_UPPER16[8] = { 0xffffffff, 0xfffffff0, 0xffffff00, 0xfffff000,
                            0xffff0000, 0xfff00000, 0xff000000, 0xf0000000 };
-int BITMASK_LOWER16[8] = { 0x0000000f, 0x000000ff, 0x00000fff, 0x0000ffff,
+unsigned int BITMASK_LOWER16[8] = { 0x0000000f, 0x000000ff, 0x00000fff, 0x0000ffff,
                            0x000fffff, 0x00ffffff, 0x0fffffff, 0xffffffff };
-int BITMASK_FACT16[8] = { 0x1, 0x10, 0x100, 0x1000,
+unsigned int BITMASK_FACT16[8] = { 0x1, 0x10, 0x100, 0x1000,
                           0x10000, 0x100000, 0x1000000,0x10000000 };
 
 /* free many pointers */

@@ -1,6 +1,6 @@
 /*****************************************
-*  BDD Package (SAPPORO-1.86)   - Body   *
-*  (C) Shin-ichi MINATO  (Dec. 22, 2017)  *
+*  BDD Package (SAPPORO-1.85)   - Body   *
+*  (C) Shin-ichi MINATO  (Nov. 26, 2017)  *
 ******************************************/
 
 #include <stdio.h>
@@ -1316,7 +1316,7 @@ bddp f;
 char *s;
 {
   struct B_NodeTable *fp;
-  int i, j, k, nz;
+  int len, i, j, k, nz;
   struct B_MP mp;
   bddp h, d;
 
@@ -1337,7 +1337,7 @@ char *s;
       mp_add(&mp, h);
     }
   }
-  if(!s) s = B_MALLOC(char, mp.len*sizeof(bddp)*2+1);
+  if(!s) s = B_MALLOC(char, len*sizeof(bddp)*2+1);
   if(!s) return s;
   k = 0;
   nz = 0;
