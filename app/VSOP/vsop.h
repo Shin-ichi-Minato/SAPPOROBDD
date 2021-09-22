@@ -1,5 +1,5 @@
-// VSOP - Header (v1.39)
-// Shin-ichi MINATO (Nov. 22, 2013)
+// VSOP - Header (v1.43)
+// Shin-ichi MINATO (May 14, 2021)
 
 #define PROMPT "vsop> "
 #define DOCUMENT "vsop.help"

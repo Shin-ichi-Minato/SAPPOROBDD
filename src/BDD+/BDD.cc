@@ -1,7 +1,7 @@
  /***************************************
  * BDD+ Manipulator (SAPPORO-1.87)      *
  * (Basic methods)                      *
- * (C) Shin-ichi MINATO (May 12, 2021)  *
+ * (C) Shin-ichi MINATO (May 14, 2021)  *
  ****************************************/
 
 #include "BDD.h"
@@ -60,8 +60,8 @@ BDD BDD::Swap(const int& v1, const int& v2) const
   BDD y = BDDvar(v2);
   BDD fx0 = At0(v1);
   BDD fx1 = At1(v1);
-  return x & ( ~y & fx0.At1(v2) | y & fx1.At1(v2) ) |
-        ~x & ( ~y & fx0.At0(v2) | y & fx1.At0(v2) );
+  return (x & ((~y & fx0.At1(v2) )|(y & fx1.At1(v2) )))|
+        (~x & ((~y & fx0.At0(v2) )|(y & fx1.At0(v2) )));
 }
 
 #define BDD_CACHE_CHK_RETURN(op, fx, gx) \
@@ -528,7 +528,7 @@ BDDV BDDV_ImportPla(FILE *strm, int sopf)
       else if(strcmp(s, "fd") == 0) mode = 1;
       else if(strcmp(s, "fr") == 0) mode = 2;
       else if(strcmp(s, "fdr") == 0) mode = 3;
-      else ; // nop
+      else { } // nop
     }
     else 
     {
@@ -550,7 +550,7 @@ BDDV BDDV_ImportPla(FILE *strm, int sopf)
   // logic description part
   while(s[0] != '.')
   {
-    if(strlen(s) != n)
+    if((int)strlen(s) != n)
     { cerr << "error at product term.\n"; return BDDV(-1);}
     term = 1;
     for(int i=0; i<n; i++)
@@ -572,7 +572,7 @@ BDDV BDDV_ImportPla(FILE *strm, int sopf)
     }
     if(fscanf(strm, "%s", s) == EOF)
     { cerr << "unexpected eof.\n"; return BDDV(-1);}
-    if(strlen(s) != m) 
+    if((int)strlen(s) != m) 
     { cerr << "error at output symbol.\n"; return BDDV(-1);}
     for(int i=0; i<m; i++)
     {

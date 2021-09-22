@@ -1,5 +1,5 @@
-// SSQ Print part (v0.1)
-// Shin-ichi MINATO (May 17, 2015)
+// SSQ Print part (v0.2)
+// Shin-ichi MINATO (May 14, 2021)
 
 #include <cstdio>
 #include <iostream>
@@ -9,11 +9,6 @@
 using namespace std;
 
 #define LINE 70
-
-static int P_OR;
-
-static int LitIP;
-static int* IPlist;
 
 BOut::BOut() { _column = 0; }
 
@@ -58,18 +53,8 @@ void BOut::Return()
 
 BOut bout;
 
-#ifndef B_STATIC
-int Plot(SeqBDD v, int inv)
-{
-  if(v == SeqBDD(-1)) return 1;
-  ZBDD v2 = v.GetZBDD();
-  v2.XPrint();
-  return 0;
-}
-#endif
-
 static int* Seq;
-static bddword Index;
+static int Index;
 static int Flag;
 
 static void PrintSeq(SeqBDD);

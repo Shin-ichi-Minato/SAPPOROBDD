@@ -1,5 +1,5 @@
 less << @EOF
-#### BEM-II Sapporo Edition (v1.30) Help Document ####
+#### BEM-II Sapporo Edition (v1.31) Help Document ####
 
 <Name convention>
 
@@ -79,8 +79,8 @@ LowerBound(<expr>:<sym> <sym> ...)
 /density     Shows the ratio of combinations for the function != 0.
 /mincover    Gives a minimum-cost cover for the function != 0.
 /mincost     Gives a minimum-cost for function != 0.
-/plot        Draws BDD graph on X-windows.
-/plot0       Draws BDD graph on X-windows without negative edges.
+/plot        Draws BDD graph on X-Window.
+/plot0       Draws BDD graph on X-Window without negative edges.
 /export      Dumps BDD graph.
 /export "filename" 
              Export BDD graph to the file.

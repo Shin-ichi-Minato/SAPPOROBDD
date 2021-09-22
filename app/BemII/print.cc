@@ -1,5 +1,5 @@
-// BEM-II Print part (SAPPORO-1.26)
-// Shin-ichi MINATO (Dec. 18, 2010)
+// BEM-II Print part (SAPPORO-1.31)
+// Shin-ichi MINATO (May 14, 2021)
 
 #include <cstdio>
 #include <iostream>
@@ -242,7 +242,7 @@ int PutList(BtoI v, int xor_, int base)
   }
   for(int i=v.Len()-2; i>=0; i--)
   {
-    char a[8];
+    char a[16];
     sprintf(a, "%3d:", i);
     bout << a;
     if(xor_ == 0) err = ISOP(v.GetBDD(i));
@@ -292,7 +292,8 @@ int Map(BtoI v, int dim, int base)
     y = dim / 2;
     x = dim - y;
     break;
-  default: ;
+  default:
+    return 0;
   }
   int mx = 1 << x;
   int my = 1 << y;

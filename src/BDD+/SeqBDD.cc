@@ -1,7 +1,7 @@
 /****************************************
- * SeqBDD Class (SAPPORO-1.70)          *
+ * SeqBDD Class (SAPPORO-1.87)          *
  * (Main part)                          *
- * (C) Shin-ichi MINATO (May 07, 2015)  *
+ * (C) Shin-ichi MINATO (May 14, 2021)  *
  ****************************************/
 
 #include "SeqBDD.h"
@@ -109,7 +109,7 @@ static void SeqBDD_PrintSeq(SeqBDD f)
   {
     if(Flag > 0) cout << "+ ";
     if(Index == 0) cout << "e ";
-    else for(int i=0; i<Index; i++) cout << Seq[i] << " ";
+    else for(bddword i=0; i<Index; i++) cout << Seq[i] << " ";
     Flag = 1;
     cout.flush();
     f -= 1;

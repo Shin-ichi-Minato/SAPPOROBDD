@@ -1,6 +1,6 @@
 /*********************************************
- * SeqBDD+ Class (SAPPORO-1.70) - Header     *
- * (C) Shin-ichi MINATO  (May 17, 2015)      *
+ * SeqBDD+ Class (SAPPORO-1.87) - Header     *
+ * (C) Shin-ichi MINATO  (May 14, 2021)      *
  *********************************************/
 
 class SeqBDD;

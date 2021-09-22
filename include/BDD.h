@@ -1,6 +1,6 @@
 /********************************************
- * BDD+ Manipulator (SAPPORO-1.86) - Header *
- * (C) Shin-ichi MINATO  (Aug. 15, 2020)    *
+ * BDD+ Manipulator (SAPPORO-1.87) - Header *
+ * (C) Shin-ichi MINATO  (MAy 14, 2021)     *
  ********************************************/
 
 class BDD;

@@ -6,6 +6,8 @@
 
 #define EDGEBLUSH	1
 
+extern int DontCrip();
+
 extern Display	*disp;
 extern Window	window;
 extern XFontStruct	*fontinfo;
@@ -44,7 +46,7 @@ void	Spark(){
 
 
 void	DrawInt( number, x, y )
-     int	number;
+     int	number, x, y;
 {
   int	width, height;
   char	letter[ 15 ];
@@ -61,7 +63,7 @@ void	DrawInt( number, x, y )
 
 
 void	DrawBoldInt( number, x, y )
-     int	number;
+     int	number, x, y;
 {
   int	width, height;
   char	letter[ 15 ];
@@ -86,8 +88,6 @@ void	Circle( x, y, r, pixel, blush )
      int	pixel;
      int	blush;
 {
-  int		i;
-
   if( DontCrip( x, y ) ){
     XDrawArc( disp, window, wingc, x - (int)r, y - (int)r, 2 * r, 2 * r,
 	     0, 23040 );
@@ -109,7 +109,7 @@ void	Square( x, y, r, pixel, blush )
 }
 
 
-Curve( x0, y0, xf, yf, xp, yp, xt, yt, splineflag )
+void Curve( x0, y0, xf, yf, xp, yp, xt, yt, splineflag )
      int	x0, y0, xf, yf, xp, yp, xt, yt;
      int	splineflag;
 {

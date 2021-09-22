@@ -1,5 +1,5 @@
-// ACC yywrap (SAPPORO-1.00)
-// Shin-ichi MINATO (Feb. 25, 2005)
+// ACC yywrap (SAPPORO-1.43)
+// Shin-ichi MINATO (May 14, 2021)
 
-yywrap(){ return 1; }
+int yywrap(){ return 1; }
 

@@ -1,5 +1,5 @@
 less << @EOF
-#### Permutation Manipulator (v0.3) Help Document ####
+#### Permutation Manipulator (v0.4) Help Document ####
 
 <Name convention>
 
@@ -49,6 +49,7 @@ quit                   Exits the program.
 /enum2       Enumerates all permutations using transpositions.
 /size        Shows the size of the PiDD.
 /count       Shows the number of permutations in the set.
+/plot        Draws PiDD graph on X-Window.
 
 <Special characters>
 

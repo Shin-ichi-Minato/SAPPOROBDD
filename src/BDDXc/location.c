@@ -1,6 +1,9 @@
 #include "defs.h"
 #include "train.h"
 
+extern void SetRadix();
+extern int GetRadix();
+
 extern train	BDDIOpacks;
 static unsigned int	width, height;
 
@@ -55,7 +58,7 @@ void	Center( level, number, x, y )
 }
 
 
-int	Head( level, number, x, y )
+void	Head( level, number, x, y )
      short      level;
      int        number;
      int	*x, *y;
@@ -68,7 +71,7 @@ int	Head( level, number, x, y )
 }
 
 
-int	Top( level, number, x, y )
+void	Top( level, number, x, y )
      short	level;
      int	number;
      int	*x, *y;
@@ -81,7 +84,7 @@ int	Top( level, number, x, y )
 }
 
 
-int	LeftHand( level, number, x, y )
+void	LeftHand( level, number, x, y )
      short      level;
      int        number;
      int	*x, *y;
@@ -94,7 +97,7 @@ int	LeftHand( level, number, x, y )
 }
 
 
-int	RightHand( level, number, x, y )
+void	RightHand( level, number, x, y )
      short      level;
      int        number;
      int	*x, *y;
@@ -107,7 +110,7 @@ int	RightHand( level, number, x, y )
 }
 
 
-int	LeftLeg( level, number, x, y )
+void	LeftLeg( level, number, x, y )
      short      level;
      int        number;
      int	*x, *y;
@@ -119,7 +122,7 @@ int	LeftLeg( level, number, x, y )
   *y = ( cy + GetRadix() / 4 * 3 );
 }
 
-int	RightLeg( level, number, x, y )
+void	RightLeg( level, number, x, y )
      short      level;
      int        number;
      int	*x, *y;
@@ -131,7 +134,7 @@ int	RightLeg( level, number, x, y )
   *y = ( cy + GetRadix() / 4 * 3 );
 }
 
-int	LeftFoot( level, number, x, y )
+void	LeftFoot( level, number, x, y )
      short      level;
      int        number;
      int	*x, *y;
@@ -143,7 +146,7 @@ int	LeftFoot( level, number, x, y )
   *y = ( cy + GetRadix() * 2  );
 }
 
-int	RightFoot( level, number, x, y )
+void	RightFoot( level, number, x, y )
      short      level;
      int        number;
      int	*x, *y;
@@ -155,7 +158,7 @@ int	RightFoot( level, number, x, y )
   *y = ( cy + GetRadix() * 2  );
 }
 
-int	Hip( level, number, x, y )
+void	Hip( level, number, x, y )
      short      level;
      int        number;
      int	*x, *y;
@@ -167,7 +170,7 @@ int	Hip( level, number, x, y )
   *y = ( cy + GetRadix() );
 }
 
-int	RightShoulder( level, number, x, y )
+void	RightShoulder( level, number, x, y )
      short	level;
      int	number;
      int	*x, *y;
@@ -182,7 +185,7 @@ int	RightShoulder( level, number, x, y )
     *y = ( cy - GetRadix() );
 }
 
-int	LeftShoulder( level, number, x, y )
+void	LeftShoulder( level, number, x, y )
      short      level;
      int        number;
      int	*x, *y;

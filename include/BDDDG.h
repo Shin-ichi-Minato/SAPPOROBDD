@@ -1,7 +1,7 @@
 /*****************************************
  * BDDDG - Decomposition Graph           *
- * (SAPPORO-1.01) - Header               *
- * (C) Shin-ichi MINATO  (July 4, 2005)  *
+ * (SAPPORO-1.87) - Header               *
+ * (C) Shin-ichi MINATO  (May 14, 2021)  *
  *****************************************/
 
 #ifndef _BDDDG_
@@ -19,7 +19,7 @@
 #define BDDDG_XOR   4
 #define BDDDG_OTHER 5
 
-#define BDDDG_PackIdx(ndx,inv) (((ndx)==BDDDG_NIL)? BDDDG_NIL:(((ndx)<<1)|inv))
+#define BDDDG_PackIdx(ndx,inv) (((ndx)==BDDDG_NIL)? BDDDG_NIL:(((ndx)<<1)|(inv)))
 #define BDDDG_Ndx(idx)         (((idx)==BDDDG_NIL)? BDDDG_NIL:((idx)>>1))
 #define BDDDG_Inv(idx)         ((idx)&1)
 #define BDDDG_InvSet(idx)      ((idx)|1)

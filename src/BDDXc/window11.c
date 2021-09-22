@@ -12,6 +12,9 @@
 #define DEFAULTWIDTH	500
 #define DEFAULTHEIGHT	600
 
+extern void LocationResetLocation();
+extern void Spark();
+extern void Show();
 
 unsigned int	BDDIOwidth, BDDIOheight;
 
@@ -43,7 +46,7 @@ void	ResetWindowSize(){
   XWindowAttributes	info;
 
   XGetWindowAttributes( disp, window, &info );
-  if( info.width != BDDIOwidth || info.height != BDDIOheight ){
+  if( info.width != (int)BDDIOwidth || info.height != (int)BDDIOheight ){
     BDDIOwidth = info.width;
     BDDIOheight = info.height;
     SetCrippingWindow( 0, 0, BDDIOwidth, BDDIOheight );
@@ -62,8 +65,8 @@ void	QueryColor( foreground, background )
 
 
 static void	DefineCursor(){
-  static XColor   frground = {0L, 0, 0, 0};
-  static XColor   bground = {0L, 65535, 65535, 65535};
+  static XColor   frground = {0L, 0, 0, 0, 0, 0};
+  static XColor   bground = {0L, 65535, 65535, 65535, 0, 0};
   Pixmap   pix, maskpix;
 
   pix = XCreateBitmapFromData( disp, window,
@@ -113,7 +116,6 @@ int 	WindowOpen( server, fontname )
      char	*server;
      char	*fontname;
 {
-  char	geo[ 50 ], defgeo[ 50 ];
   char	fname[ 50 ];
   
   disp = XOpenDisplay( server );
@@ -207,9 +209,9 @@ int	DontCrip( x, y )
 }
 
 
-Interrupt(){
+int Interrupt(){
   int  b;
-  XEvent  event;
+  XEvent  event; 
 
   XSync( disp, 0 );
 /*  b = XCheckWindowEvent( window, ExposeWindow, &event );

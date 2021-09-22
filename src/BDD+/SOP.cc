@@ -1,7 +1,7 @@
 /****************************************
- * ZBDD-based SOP class (SAPPORO-1.7)   *
+ * ZBDD-based SOP class (SAPPORO-1.87)  *
  * (Main part)                          *
- * (C) Shin-ichi MINATO (Sep. 4, 2015)  *
+ * (C) Shin-ichi MINATO (May 14, 2021)  *
  ****************************************/
 
 #include "SOP.h"
@@ -273,7 +273,6 @@ SOP SOP::Divisor() const
   if(*this == -1) return -1;
   if(*this == 0) return 0;
   if(IsPolyCube() == 0) return 1;
-  int top = Top();
   SOP f = *this;
   SOP g = Support();
   int t;
@@ -473,6 +472,7 @@ int SOPV::PrintPla() const
   Len = Last() + 1;
   cout << ".i " << tlev/2 << "\n";
   cout << ".o " << Len << "\n";
+  cout << ".p " << Cube() << "\n";
   if(tlev > 0)
   {
     Array = new char[tlev/2 + 1];

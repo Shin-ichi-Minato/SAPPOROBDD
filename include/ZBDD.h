@@ -1,6 +1,6 @@
 /*********************************************
- * ZBDD+ Manipulator (SAPPORO-1.84) - Header *
- * (C) Shin-ichi MINATO  (Apr. 2, 2017)      *
+ * ZBDD+ Manipulator (SAPPORO-1.87) - Header *
+ * (C) Shin-ichi MINATO  (May 14, 2021)      *
  *********************************************/
 
 class ZBDD;

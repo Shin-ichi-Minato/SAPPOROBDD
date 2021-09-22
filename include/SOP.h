@@ -1,6 +1,6 @@
 /************************************************
- * ZBDD-based SOP class (SAPPORO-1.55) - Header *
- * (C) Shin-ichi MINATO  (Dec. 11, 2012)        *
+ * ZBDD-based SOP class (SAPPORO-1.87) - Header *
+ * (C) Shin-ichi MINATO  (May 14, 2021)         *
  ************************************************/
 
 class SOP;

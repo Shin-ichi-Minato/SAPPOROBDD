@@ -1,5 +1,5 @@
 less << @EOF
-#### SSQ - manipulator for Sets of SeQuences (v0.1) Help Document ####
+#### SSQ - manipulator for Sets of SeQuences (v0.2) Help Document ####
 
 <Name convention>
 
@@ -42,6 +42,7 @@ quit                   Exits the program.
 /card        Shows the number of sequences in the set.
 /lit         Shows the total number of literals in the set.
 /depth       Shows the maximum depth of the SeqBDD.
+/plot        Draws SeqBDD on X-Window.
 /export      Exports the structure of the SeqBDD.
 /export "<filename>"
              Exports the structure of the SeqBDD to the file.

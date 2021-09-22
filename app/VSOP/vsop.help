@@ -1,5 +1,5 @@
 less << @EOF
-#### VSOP(v1.41) Help Document ####
+#### VSOP(v1.43) Help Document ####
 
 <Name convention>
 
@@ -121,7 +121,7 @@ Lcm("<switch>" "<filename>" <num> "<filename2>")
 /mincover    Shows a minimum-cost combination in the set.
 /mincost     Shows cost of the minimum-cost combination.
 /decomp      Shows the simple disjoint decompositions.
-/plot        Draws ZBDD graph on X-windows.
+/plot        Draws ZBDD graph on X-Window.
 /export      Dumps ZBDD graph.
 /export "filename"
              Export ZBDD graph to the external file.
@@ -133,7 +133,7 @@ Lcm("<switch>" "<filename>" <num> "<filename2>")
 \ ... Escape of "return". 
 
 <Example>
-***** VSOP (Valued Sum-Of-Products) calculator <v1.26> *****
+***** VSOP (Valued Sum-Of-Products) calculator <v1.43> *****
  vsop> symbol a b c d e
  vsop> F = (a + 2 b)(c + d)
  vsop> print F

@@ -1,5 +1,5 @@
-// SSQ - Header (v0.1)
-// Shin-ichi MINATO (May 17, 2015)
+// SSQ - Header (v0.2)
+// Shin-ichi MINATO (May 14, 2021)
 
 #define PROMPT "ssq> "
 #define DOCUMENT "ssq.help"

@@ -309,7 +309,6 @@ int BDDDG::LinkNodes(bddword idx, bddword idx2)
     exit(1);
   }
   bddword ndx = BDDDG_Ndx(idx);
-  bddword ndx2 = BDDDG_Ndx(idx2);
   bddword lkx = NewLkx(idx2);
   if(lkx == BDDDG_NIL) return 1;
   _linkA[lkx]._nxt = _nodeA[ndx]._lkx;
@@ -660,7 +659,7 @@ bddword BDDDG::Merge(BDD f, bddword idx0, bddword idx1)
 
     if(fin2 > 0)
     {
-      bddword idy0; 
+      bddword idy0 = bddnull; 
       if(fin0 - fin2 > 1)
       {
         BDD g = 0;
@@ -704,7 +703,7 @@ bddword BDDDG::Merge(BDD f, bddword idx0, bddword idx1)
       }
       else idy0 = BDDDG_InvSet(_c1);
   
-      bddword idy1; 
+      bddword idy1 = bddnull; 
       if(fin1 - fin2 > 1)
       {
         BDD g = 0;
@@ -787,7 +786,7 @@ bddword BDDDG::Merge(BDD f, bddword idx0, bddword idx1)
 
     if(fin2 > 0)
     {
-      bddword idy0; 
+      bddword idy0 = bddnull; 
       if(fin0 - fin2 > 1)
       {
         BDD g = 0;
@@ -828,7 +827,7 @@ bddword BDDDG::Merge(BDD f, bddword idx0, bddword idx1)
       }
       else idy0 = BDDDG_InvSet(_c1);
 
-      bddword idy1; 
+      bddword idy1 = bddnull; 
       if(fin1 - fin2 > 1)
       {
         BDD g = 0;
@@ -913,7 +912,7 @@ bddword BDDDG::Merge(BDD f, bddword idx0, bddword idx1)
     if(fin2 > 0 &&
       (_nodeA[ndx0]._mark == 2) == (BDDDG_Inv(idx0)!=BDDDG_Inv(idx1)))
     {
-      bddword idy1;
+      bddword idy1 = bddnull;
       if(fin1 > 2)
       {
         BDD g = 0;
@@ -992,7 +991,7 @@ bddword BDDDG::Merge(BDD f, bddword idx0, bddword idx1)
     if(fin2 > 0 &&
       (_nodeA[ndx1]._mark == 2) == (BDDDG_Inv(idx0)!=BDDDG_Inv(idx1)))
     {
-      bddword idy0;
+      bddword idy0 = bddnull;
       if(fin0 > 2)
       {
         BDD g = 0;
@@ -1066,7 +1065,7 @@ bddword BDDDG::Merge(BDD f, bddword idx0, bddword idx1)
 
     if(fin2 > 0)
     {
-      bddword idy1;
+      bddword idy1 = bddnull;
       if(fin1 > 2)
       {
         BDD g = 0;
@@ -1141,7 +1140,7 @@ bddword BDDDG::Merge(BDD f, bddword idx0, bddword idx1)
 
     if(fin2 > 0)
     {
-      bddword idy0;
+      bddword idy0 = bddnull;
       if(fin0 > 2)
       {
         BDD g = 0;
@@ -1222,7 +1221,7 @@ bddword BDDDG::Merge(BDD f, bddword idx0, bddword idx1)
     // Case1-OTHER(a) ?
     if(fin2 > 0 && fin0 - fin2 == 1 && fin1 - fin2 == 1)
     {
-      bddword idy0;
+      bddword idy0 = bddnull;
       lkx = _nodeA[ndx0]._lkx;
       while(lkx != BDDDG_NIL)
       {

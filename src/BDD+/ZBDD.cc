@@ -1,7 +1,7 @@
 /****************************************
  * ZBDD+ Manipulator (SAPPORO-1.87)     *
  * (Main part)                          *
- * (C) Shin-ichi MINATO (May 12, 2021)  *
+ * (C) Shin-ichi MINATO (May 14, 2021)  *
  ****************************************/
 
 #include "ZBDD.h"
@@ -694,7 +694,7 @@ ZBDD ZBDDV::GetZBDD(int index) const
   while(level > 0)
   {
     if(f == 0) return f;
-    if((index & (1<<level-1)) != 0) f = f.OnSet0(level);
+    if((index & (1<<(level-1))) != 0) f = f.OnSet0(level);
     else f = f.OffSet(level);
     level--;
   }
@@ -953,12 +953,12 @@ ZBDD ZBDD::ZLev(int lev, int last) const
       int n = ZLevNum(flev);
       if(flev >= 66)
       {
-        if(n < lev || ((flev & 3) < 3 && ZLevNum(flev - 3) >= lev))
+        if(n < lev || ((flev & 3) < 3 && ZLevNum((flev-3)) >= lev))
 	  n = flev - 1;
       }
       else if(flev >= 18)
       {
-        if(n < lev || ((flev & 1) < 1 && ZLevNum(flev - 1) >= lev))
+        if(n < lev || ((flev & 1) < 1 && ZLevNum((flev-1)) >= lev))
 	  n = flev - 1;
       }
       else if(n < lev) n = flev - 1;

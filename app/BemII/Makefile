@@ -14,7 +14,7 @@ PRG64   = bemII64
 PRG_ST  = bemII-static
 PRG64_ST = bemII64-static
 
-OPT 	= -O3 -DYY_ALWAYS_INTERACTIVE -I$(INCL)
+OPT 	= -O3 -Wall -W -DYY_ALWAYS_INTERACTIVE -I$(INCL)
 OPT64   = $(OPT) -DB_64
 OPT_ST  = $(OPT) -DB_STATIC -static
 OPT64_ST = $(OPT64) -DB_STATIC -static

@@ -1,7 +1,7 @@
 CC    = g++
 DIR   = ../..
 INCL  = $(DIR)/include
-OPT   = -O3 -D_NO_MAIN_ -I$(INCL)
+OPT   = -O3 -Wall -W -D_NO_MAIN_ -I$(INCL)
 OPT64 = $(OPT) -DB_64
 
 all:	lcm-vsop.o

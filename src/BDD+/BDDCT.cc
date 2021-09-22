@@ -1,6 +1,6 @@
 /****************************************
  * BDD Cost Table class - Body v1.87    *
- * (C) Shin-ichi MINATO (May 12, 2021)  *
+ * (C) Shin-ichi MINATO (May 14, 2021)  *
  ****************************************/
 
 #include "BDDCT.h"
@@ -62,7 +62,7 @@ int BDDCT::Alloc(const int n, const bddcost cost)
       _label[i] = 0;
     }
     for(int i=0; i<_n; i++)
-      if(_label[i] = new char[CT_STRLEN + 1]) _label[i][0] = 0;
+      if((_label[i] = new char[CT_STRLEN + 1])) _label[i][0] = 0;
       else { Alloc(0); return 1; }
   }
 
@@ -83,11 +83,11 @@ int BDDCT::Import(FILE *fp)
   int e = 0;
   for(int ix=0; ix<_n; ix++)
   {
-    if(e = SetCost(ix, strtol(s, NULL, 10))) break;
+    if((e = SetCost(ix, strtol(s, NULL, 10)))) break;
     if(fscanf(fp, "%s", s) == EOF) { if(ix<_n-1) e = 1; break; }
     if(s[0] == '#') 
     {
-      if(e = SetLabel(ix, s+1)) break;
+      if((e = SetLabel(ix, s+1))) break;
       do if(fscanf(fp, "%s", s) == EOF) { if(ix<_n-1) e = 1; break; }
       while(s[0] == '#'); // go next word
     }

@@ -1,7 +1,7 @@
 /*****************************************
  * ZZBDDDG - Decomposition Graph         *
- * (SAPPORO-1.02) - Header               *
- * (C) Shin-ichi MINATO  (Aug. 8, 2005)  *
+ * (SAPPORO-1.87) - Header               *
+ * (C) Shin-ichi MINATO  (May 14, 2021)  *
  *****************************************/
 
 #ifndef _ZBDDDG_

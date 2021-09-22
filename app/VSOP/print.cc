@@ -1,5 +1,5 @@
-// VSOP Print (v1.36)
-// Shin-ichi MINATO (Dec. 18, 2010)
+// VSOP Print (v1.43)
+// Shin-ichi MINATO (May 14, 2021)
 
 #include <cstdio>
 #include <iostream>
@@ -60,7 +60,6 @@ int PutNum(CtoI a, int base)
     delete[] s;
     return 1;
   }
-  int len = strlen(s);
   bout << s;
   delete[] s;
   return 0;
@@ -282,7 +281,8 @@ int Map(CtoI a, int dim)
     y = dim / 2;
     x = dim - y;
     break;
-  default: ;
+  default:
+    return 0;
   }
   int mx = 1 << x;
   int my = 1 << y;
@@ -360,7 +360,7 @@ void PrintD(ZBDDDG* dg, bddword ndx)
 {
   ZBDDDG_Tag tag, tag2;
   tag.Set(dg, ndx);
-  bddword ndx0, ndx2;
+  bddword ndx0;
   int top;
   switch(tag.Type())
   {
@@ -470,7 +470,7 @@ void PrintDD(ZBDDDG* dg, bddword ndx)
 {
   ZBDDDG_Tag tag, tag2;
   tag.Set(dg, ndx);
-  bddword ndx0, ndx2;
+  bddword ndx0;
   char s[20];
   int top;
   int n;

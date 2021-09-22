@@ -1,6 +1,6 @@
 /**********************************************
- * ZBDDDG - Decomposition Graph (SAPPORO-1.59)*
- * (C) Shin-ichi MINATO (Dec. 10, 2013)       *
+ * ZBDDDG - Decomposition Graph (SAPPORO-1.87)*
+ * (C) Shin-ichi MINATO (May 14, 2021)        *
  **********************************************/
 
 #include "ZBDDDG.h"
@@ -212,7 +212,6 @@ ZBDDDG::Node::Node(ZBDD f, char type)
 int ZBDDDG::PhaseSweep(bddword ndx)
 {
   int fin = 0;
-  int inv = 0;
   bddword lkx = _nodeA[ndx]._lkx;
 
   switch(_nodeA[ndx]._type)
@@ -795,7 +794,7 @@ bddword ZBDDDG::Merge(ZBDD f, bddword ndx0, bddword ndx1)
 
     if(fin2 > 0)
     {
-      bddword ndy0; 
+      bddword ndy0 = bddnull; 
       if(fin0 - fin2 > 1)
       {
         ZBDD g = 1;
@@ -834,7 +833,7 @@ bddword ZBDDDG::Merge(ZBDD f, bddword ndx0, bddword ndx1)
       }
       else ndy0 = _c1;
   
-      bddword ndy1; 
+      bddword ndy1 = bddnull; 
       if(fin1 - fin2 > 1)
       {
         ZBDD g = 1;
@@ -909,7 +908,7 @@ bddword ZBDDDG::Merge(ZBDD f, bddword ndx0, bddword ndx1)
 
     if(fin2 > 0)
     {
-      bddword ndy0;
+      bddword ndy0 = bddnull;
       if(fin0 > 2)
       {
         ZBDD g = 1;
@@ -976,7 +975,7 @@ bddword ZBDDDG::Merge(ZBDD f, bddword ndx0, bddword ndx1)
 
     if(fin2 > 0)
     {
-      bddword ndy1;
+      bddword ndy1 = bddnull;
       if(fin1 > 2)
       {
         ZBDD g = 1;
@@ -1047,7 +1046,7 @@ bddword ZBDDDG::Merge(ZBDD f, bddword ndx0, bddword ndx1)
     }
     if(fin2 > 0)
     {
-      bddword ndy0; 
+      bddword ndy0 = bddnull; 
       if(fin0 - fin2 > 1)
       {
         ZBDD g = 0;
@@ -1256,7 +1255,7 @@ bddword ZBDDDG::Merge(ZBDD f, bddword ndx0, bddword ndx1)
     }
     if(fin2 > 0 && fin1 - fin2 > 0)
     {
-      bddword ndy1;
+      bddword ndy1 = bddnull;
       if(fin2 >= 2)
       {
         ZBDD g = 1;
@@ -1294,7 +1293,7 @@ bddword ZBDDDG::Merge(ZBDD f, bddword ndx0, bddword ndx1)
         }
       }
 
-      bddword ndy2;
+      bddword ndy2 = bddnull;
       if(fin1 - fin2 >= 2)
       {
         ZBDD g = 1;

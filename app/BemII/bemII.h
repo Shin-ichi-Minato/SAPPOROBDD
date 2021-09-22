@@ -1,5 +1,5 @@
-// BEM-II - Header (SAPPORO-1.29)
-// Shin-ichi MINATO (Nov. 22, 2013)
+// BEM-II - Header (SAPPORO-1.31)
+// Shin-ichi MINATO (May 14, 2021)
 
 #define PROMPT "> "
 #define DOCUMENT "bemII.help"

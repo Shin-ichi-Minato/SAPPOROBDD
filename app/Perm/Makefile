@@ -6,15 +6,15 @@ DIR	= ../..
 INCL    = $(DIR)/include
 LIB	= $(DIR)/lib/BDD.a
 LIB64	= $(DIR)/lib/BDD64.a
-#XLIB64  = -lX11
-XLIB64  = /usr/X11R6/lib64/libX11.a
+XLIB64  = -L/opt/X11/lib -lX11
+#XLIB64  = /usr/X11R6/lib64/libX11.a
 
 PRG     = perm
 PRG64   = perm64
 PRG_ST  = perm-static
 PRG64_ST = perm64-static
 
-OPT 	= -O2 -DYY_ALWAYS_INTERACTIVE -I$(INCL)
+OPT 	= -O3 -Wall -W -DYY_ALWAYS_INTERACTIVE -I$(INCL)
 OPT64   = $(OPT) -DB_64
 OPT_ST  = $(OPT) -DB_STATIC -static
 OPT64_ST = $(OPT64) -DB_STATIC -static

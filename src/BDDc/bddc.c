@@ -1,10 +1,11 @@
 /*****************************************
-*  BDD Package (SAPPORO-1.85)   - Body   *
-*  (C) Shin-ichi MINATO  (Nov. 26, 2017)  *
+*  BDD Package (SAPPORO-1.87)   - Body   *
+*  (C) Shin-ichi MINATO  (May 14, 2021)  *
 ******************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "bddc.h"
 
 /* ----------------- MACRO Definitions ---------------- */
@@ -390,7 +391,7 @@ int bddgc()
   struct B_NodeTable *np;
   struct B_VarTable *varp;
   bddvar v;
-  bddp oldSpc, newSpc, nx, key, f0, f1;
+  bddp oldSpc, newSpc, nx, key;
   bddp_32 *newhash_32, *p_32, *p2_32;
 #ifdef B_64
   bddp_h8 *newhash_h8, *p_h8, *p2_h8;
@@ -768,7 +769,7 @@ bddvar bddnewvar()
 bddvar bddnewvaroflev(lev)
 bddvar  lev;
 {
-  bddvar i, v;
+  bddvar i;
 
   if(lev == 0 || lev > ++VarUsed)
     err("bddnewvaroflev: Invalid level", lev);
@@ -1067,7 +1068,6 @@ bddvar shift;
 /* Returns bddnull if not enough memory */
 {
   struct B_NodeTable *fp;
-  bddvar flev;
 
   /* Check operands */
   if(shift >= VarUsed)
@@ -1087,7 +1087,6 @@ bddvar shift;
 /* Returns bddnull if not enough memory */
 {
   struct B_NodeTable *fp;
-  bddvar flev;
 
   /* Check operands */
   if(shift >= VarUsed)
@@ -1316,7 +1315,7 @@ bddp f;
 char *s;
 {
   struct B_NodeTable *fp;
-  int len, i, j, k, nz;
+  int i, j, k, nz;
   struct B_MP mp;
   bddp h, d;
 
@@ -1337,7 +1336,7 @@ char *s;
       mp_add(&mp, h);
     }
   }
-  if(!s) s = B_MALLOC(char, len*sizeof(bddp)*2+1);
+  if(!s) s = B_MALLOC(char, mp.len*sizeof(bddp)*2+1);
   if(!s) return s;
   k = 0;
   nz = 0;
@@ -2321,7 +2320,7 @@ unsigned char op, skip;
       }
       wp = mpt->word;
         
-      for(i=0; i<mp.len; i++) wp[mp.len*(mpt->used)+i] = mp.word[i];
+      for(i=0; i<(bddp)mp.len; i++) wp[mp.len*(mpt->used)+i] = mp.word[i];
       h = (((bddp)mp.len-1)<<B_MP_LPOS) + B_CST_MASK + (mpt->used++);
       break;
     }
@@ -2462,10 +2461,8 @@ static bddp count(f)
 bddp f;
 {
   bddp nx;
-  bddp c, g;
-  bddvar flev, glev;
+  bddp c;
   struct B_NodeTable *fp;
-  struct B_NodeTable *gp;
 
   /* Check consistensy
   if(f == bddnull)
@@ -2617,8 +2614,6 @@ bddvar v;
 bddp f0, f1;
 /* Returns bddnull if not enough memory */
 {
-  struct B_NodeTable *fp;
-
   /* Check elimination rule */
   if(f1 == bddfalse) return f0;
 
@@ -2639,8 +2634,8 @@ bddp f, g;
 {
   struct B_NodeTable *fp, *gp;
   struct B_CacheTable *cachep;
-  bddp key, f0, f1, g0, g1, h0, h1, h;
-  bddvar v, flev, glev;
+  bddp key, f0, f1, g0, g1, h;
+  bddvar flev, glev;
 
   /* Check trivial cases */
   if(f == bddfalse || g == bddfalse || f == B_NOT(g)) return 0;
@@ -2676,7 +2671,6 @@ bddp f, g;
 
   if(flev <= glev)
   {
-    v = B_VAR_NP(gp);
     g0 = B_GET_BDDP(gp->f0);
     g1 = B_GET_BDDP(gp->f1);
     if(B_NEG(g)) { g0 = B_NOT(g0); g1 = B_NOT(g1); }
@@ -2684,7 +2678,6 @@ bddp f, g;
 
   if(flev >= glev)
   {
-    v = B_VAR_NP(fp);
     f0 = B_GET_BDDP(fp->f0);
     f1 = B_GET_BDDP(fp->f1);
     if(B_NEG(f)) { f0 = B_NOT(f0); f1 = B_NOT(f1); }
@@ -2731,7 +2724,6 @@ static int rfc_inc_ovf(np)
 struct B_NodeTable *np;
 {
   bddp ix, nx, nx2, key, rfc, oldSpc;
-  bddp *p, *p2;
   struct B_RFC_Table *oldRFCT;
 
 /* printf("rfc_inc %d (u:%d)\n", np-Node, RFCT_Used); */
@@ -2867,7 +2859,7 @@ int z;
   v = fscanf(strm, "%s", s);
   if(v == EOF) return 1;
   n = strtol(s, 0, 10);
-  while(n > bddvarused()) bddnewvar();
+  while(n > (int)bddvarused()) bddnewvar();
 
   v = fscanf(strm, "%s", s);
   if(v == EOF) return 1;

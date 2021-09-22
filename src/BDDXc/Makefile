@@ -1,7 +1,7 @@
 CC    = gcc
 DIR   = ../..
 INCL  = $(DIR)/include
-OPT   = -O3 -I$(INCL) -I/opt/X11/include
+OPT   = -O3 -Wall -W -I$(INCL) -I/opt/X11/include
 OPT64 = $(OPT) -DB_64
 
 WINDOWDEF = -DLINE

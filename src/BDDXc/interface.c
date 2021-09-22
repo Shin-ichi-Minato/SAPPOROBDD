@@ -72,6 +72,7 @@ int	NameOfLeaf( leaf )
     return( -1 );
   }
   else{
-    fprintf( stderr, "Something is wrong. (%d)\n" , leaf);
+    fprintf( stderr, "Something is wrong. (%d)\n" , (int)leaf);
+    return( -1 );
   }
 }

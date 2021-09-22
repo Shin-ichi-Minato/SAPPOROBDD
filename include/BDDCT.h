@@ -1,6 +1,6 @@
 /*****************************************
- *  BDD Cost Table class - Header v1.01  *
- *  (C) Shin-ichi MINATO (Sep. 10, 2020) *
+ *  BDD Cost Table class - Header v1.87  *
+ *  (C) Shin-ichi MINATO (May 14, 2021)  *
  *****************************************/
 
 class BDDCT;

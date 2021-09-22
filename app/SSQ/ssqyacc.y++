@@ -1,5 +1,5 @@
 %{
-// SSQ Parser(Yacc) (v0.1)
+// SSQ Parser(Yacc) (v0.2)
 // Shin-ichi MINATO (May 17, 2015)
 
 #define YYMAXDEPTH 1000
@@ -163,7 +163,7 @@ command
   | output
   | help
     {
-      system(DOCUMENT);
+      if(system(DOCUMENT)){};
     }
   ;
 
@@ -360,6 +360,11 @@ output
 	B_ITOSTR($4 -> Len(), a);
         bout << " " << a;
         bout.Return();
+        delete $4;
+      }
+      else if(strcmp($3.str, "plot") == 0)
+      {
+        $4 -> GetZBDD().XPrint();
         delete $4;
       }
       else if(strcmp($3.str, "export") == 0)

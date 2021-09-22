@@ -1,6 +1,6 @@
 /*****************************************
-*  BDD Package (SAPPORO-1.85)   - Header *
-*  (C) Shin-ichi MINATO  (Nov. 26, 2017)  *
+*  BDD Package (SAPPORO-1.87)   - Header *
+*  (C) Shin-ichi MINATO  (May 14, 2021)  *
 ******************************************/
 
 #ifndef bddc_h

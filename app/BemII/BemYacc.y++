@@ -1,6 +1,6 @@
 %{
-// BEM-II Parser(Yacc) (SAPPORO-1.30)
-// Shin-ichi MINATO (Sep. 16, 2015)
+// BEM-II Parser(Yacc) (SAPPORO-1.31)
+// Shin-ichi MINATO (May 14, 2021)
 
 #define YYMAXDEPTH 1000
 #include <cstdlib>
@@ -40,13 +40,13 @@ static const int BC_BEMII_COUNT = 52;
 static const int power30 = 1 << 30;
 
 #define BEMII_CACHE_CHK_RETURN(op, fx, gx) \
-  { bddword c = BDD_CacheInt(op, fx, gx); \
-    if(c <= power30) return c; \
+  { bddword w = BDD_CacheInt(op, fx, gx); \
+    if(w < BDD(-1).GetID()) return (int)w; \
     BDD_RECUR_INC; }
 
 #define BEMII_CACHE_ENT_RETURN(op, fx, gx, c) \
   { BDD_RECUR_DEC; \
-    if(c <= power30) BDD_CacheEnt(op, fx, gx, c); \
+    BDD_CacheEnt(op, fx, gx, c); \
     return c; }
 //------------------------------------------------------
 
@@ -87,7 +87,7 @@ int main(int argc, char** argv)
 
   if(src == 0 && isatty(0) == 1)
   {
-    cerr << "***** BEM-II Sapporo edition (v1.30) *****\n"; 
+    cerr << "***** BEM-II Sapporo edition (v1.31) *****\n"; 
     cerr << PROMPT; 
     cerr.flush();
   }
@@ -112,8 +112,8 @@ struct OV
   }
 } OVF;
 
-static bddword MinCost(BDD f);
-bddword MinCost(BDD f)
+static int MinCost(BDD f);
+int MinCost(BDD f)
 {
   if(f == -1) return 0;
   if(f == 0) return power30;
@@ -123,17 +123,17 @@ bddword MinCost(BDD f)
   BEMII_CACHE_CHK_RETURN(BC_BEMII_MINCOST, fx, 0);
 
   int var = f.Top();
-  bddword cost0 = MinCost(f.At0(var));
-  bddword cost1 = MinCost(f.At1(var))
+  int cost0 = MinCost(f.At0(var));
+  int cost1 = MinCost(f.At1(var))
                 + VTable.GetCost(var);
-  bddword cost = (cost0 > cost1)? cost1: cost0;
+  int cost = (cost0 > cost1)? cost1: cost0;
 
   BEMII_CACHE_ENT_RETURN(BC_BEMII_MINCOST, fx, 0, cost);
   return cost;
 }
 
-static bddword Density(BDD);
-bddword Density(BDD f)
+static int Density(BDD);
+int Density(BDD f)
 {
   if(f == -1) return 0;
   if(f == 0) return 0;
@@ -143,27 +143,28 @@ bddword Density(BDD f)
   BEMII_CACHE_CHK_RETURN(BC_BEMII_DENSITY, fx, 0);
 
   int var = f.Top();
-  bddword dense = (Density(f.At0(var)) >> 1)
+  int dense = (Density(f.At0(var)) >> 1)
         + (Density(f.At1(var)) >> 1);
 
   BEMII_CACHE_ENT_RETURN(BC_BEMII_DENSITY, fx, 0, dense);
 }
 
-static bddword Count(BDD, int);
-bddword Count(BDD f, int tlev)
+static int Count(BDD, int);
+int Count(BDD f, int tlev)
 {
   if(f == -1) return 0;
   if(f == 0) return 0;
 
   int var = f.Top();
   int lev = BDD_LevOfVar(var);
-  bddword c;
+  int c;
   if(f == 1) c = 1;
   else
   {
     bddword fx = f.GetID();
-    c = BDD_CacheInt(BC_BEMII_COUNT, fx, 0);
-    if(c > power30)
+    bddword w = BDD_CacheInt(BC_BEMII_COUNT, fx, 0);
+    if(w < BDD(-1).GetID()) c = (int)w;
+    else
     {
       BDD_RECUR_INC;
       c = Count(f.At0(var), lev-1) + Count(f.At1(var), lev-1);
@@ -255,7 +256,7 @@ command
   | output
   | help
     {
-      system(DOCUMENT);
+      if(system(DOCUMENT)){};
     }
   ;
 
@@ -282,7 +283,7 @@ define
 	  int var = BDD_VarOfLev(i);
           bout << VTable.GetName(var) << "(";
           char s[32];
-          sprintf(s, "%d", VTable.GetCost(var));
+          sprintf(s, "%d", (int)VTable.GetCost(var));
           bout << s << ")";
           bout.Delimit();
         }
@@ -777,7 +778,7 @@ output
           f = 0;
         }
         char a[32];
-        sprintf(a, " %d", Count(f, VTable.Used()));
+        sprintf(a, " %d", (int)Count(f, VTable.Used()));
         if(OVF.Check()!= 0)
           yyerror("<WARNING> Overflow occurred");
         bout << a;

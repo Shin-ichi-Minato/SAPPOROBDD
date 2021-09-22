@@ -1,6 +1,6 @@
 %{
-// Perm Parser(Yacc) (v0.3)
-// Shin-ichi MINATO (Jul. 3, 2011)
+// Perm Parser(Yacc) (v0.4)
+// Shin-ichi MINATO (May. 14, 2021)
 
 #define YYMAXDEPTH 1000
 #include <cstdlib>
@@ -168,7 +168,7 @@ command
   | output
   | help
     {
-      system(DOCUMENT);
+      if(system(DOCUMENT)){};
     }
   ;
 
@@ -479,6 +479,11 @@ output
       else if(strcmp($3.str, "enum2") == 0)
       {
         PermEnum2(*$4);
+        delete $4;
+      }
+      else if(strcmp($3.str, "plot") == 0)
+      {
+        $4 -> GetZBDD().XPrint();
         delete $4;
       }
       else if(strcmp($3.str, "export") == 0)

@@ -1,5 +1,5 @@
-// Perm - Header (v0.1)
-// Shin-ichi MINATO (Feb. 26, 2011)
+// Perm - Header (v0.4)
+// Shin-ichi MINATO (May 14, 2021)
 
 #define PROMPT "perm> "
 #define DOCUMENT "perm.help"
