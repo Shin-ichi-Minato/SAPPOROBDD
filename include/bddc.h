@@ -1,6 +1,6 @@
 /*****************************************
-*  BDD Package (SAPPORO-1.84)   - Header *
-*  (C) Shin-ichi MINATO  (Apr. 2, 2017)  *
+*  BDD Package (SAPPORO-1.85)   - Header *
+*  (C) Shin-ichi MINATO  (Nov. 26, 2017)  *
 ******************************************/
 
 #ifndef bddc_h
@@ -122,6 +122,8 @@ extern bddp   bddlit B_ARG((bddp f));
 extern bddp   bddlen B_ARG((bddp f));
 extern int    bddimportz B_ARG((FILE* strm, bddp* p, int lim));
 extern char  *bddcardmp16 B_ARG((bddp f, char *s));
+extern int    bddisbdd B_ARG((bddp f));
+extern int    bddiszbdd B_ARG((bddp f));
 
 /************** SeqBDD operations *************/
 extern bddp   bddpush B_ARG((bddp f, bddvar v));

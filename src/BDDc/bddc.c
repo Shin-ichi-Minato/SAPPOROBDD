@@ -1,6 +1,6 @@
 /*****************************************
-*  BDD Package (SAPPORO-1.84)   - Body   *
-*  (C) Shin-ichi MINATO  (Apr. 4, 2017)  *
+*  BDD Package (SAPPORO-1.85)   - Body   *
+*  (C) Shin-ichi MINATO  (Nov. 26, 2017)  *
 ******************************************/
 
 #include <stdio.h>
@@ -1377,6 +1377,32 @@ bddp *p;
 int lim;
 {
   return import(strm, p, lim, 1);
+}
+
+int bddisbdd(f)
+bddp f;
+{
+  struct B_NodeTable* fp;
+
+  if(f == bddnull) return 0;
+  if(B_CST(f)) return 1;
+  if((fp=B_NP(f))>=Node+NodeSpc || !fp->varrfc)
+    err("bddisbdd: Invalid bddp", f);
+
+  return (B_NEG(B_GET_BDDP(fp->f0)) ? 0 : 1);
+}
+
+int bddiszbdd(f)
+bddp f;
+{
+  struct B_NodeTable* fp;
+
+  if(f == bddnull) return 0;
+  if(B_CST(f)) return 1;
+  if((fp=B_NP(f))>=Node+NodeSpc || !fp->varrfc)
+    err("bddiszbdd: Invalid bddp", f);
+
+  return (B_NEG(B_GET_BDDP(fp->f0)) ? 1 : 0);
 }
 
 bddp    bddpush(f, v)
