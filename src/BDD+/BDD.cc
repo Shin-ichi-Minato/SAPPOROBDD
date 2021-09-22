@@ -1,7 +1,7 @@
  /***************************************
- * BDD+ Manipulator (SAPPORO-1.81)      *
+ * BDD+ Manipulator (SAPPORO-1.86)      *
  * (Basic methods)                      *
- * (C) Shin-ichi MINATO (Mar. 9, 2017)  *
+ * (C) Shin-ichi MINATO (Aug. 15, 2020) *
  ****************************************/
 
 #include "BDD.h"
@@ -495,3 +495,136 @@ BDDV BDDV_Import(FILE *strm)
   return v;
 }
 
+BDDV BDDV_ImportPla(FILE *strm, int sopf)
+{
+  char s[256];
+  int n = 0;
+  int m = 0;
+  int mode = 1; // 0:f 1:fd 2:fr 3:fdr
+
+  do if(fscanf(strm, "%s", &s) == EOF) return BDDV(-1);
+  while(s[0] == '#');
+
+  // declaration part 
+  while(s[0] == '.')
+  {
+    if(strcmp(s, ".i") == 0)
+    {
+      if(fscanf(strm, "%s", &s) == EOF)
+      { cerr << "unexpected eof.\n"; return BDDV(-1);}
+      n = strtol(s, NULL, 10);
+    }
+    else if(strcmp(s, ".o") == 0)
+    {
+      if(fscanf(strm, "%s", &s) == EOF)
+      { cerr << "unexpected eof.\n"; return BDDV(-1);}
+      m = strtol(s, NULL, 10);
+    }
+    else if(strcmp(s, ".type") == 0)
+    {
+      if(fscanf(strm, "%s", &s) == EOF)
+      { cerr << "unexpected eof.\n"; return BDDV(-1);}
+      if(strcmp(s, "f") == 0) mode = 0;
+      else if(strcmp(s, "fd") == 0) mode = 1;
+      else if(strcmp(s, "fr") == 0) mode = 2;
+      else if(strcmp(s, "fdr") == 0) mode = 3;
+      else ; // nop
+    }
+    else 
+    {
+      if(fscanf(strm, "%s", &s) == EOF)
+      { cerr << "unexpected eof.\n"; return BDDV(-1);}
+    }
+    if(fscanf(strm, "%s", &s) == EOF)
+    { cerr << "unexpected eof.\n"; return BDDV(-1);}
+  }
+  
+  if(n < 0) { cerr << "error in input size.\n"; return BDDV(-1);}
+  if(m <= 0) { cerr << "error in output size.\n"; return BDDV(-1);}
+  while(BDD_TopLev() < n*2) BDD_NewVar();
+  BDDV onset = BDDV(0, m);
+  BDDV offset = BDDV(0, m);
+  BDDV dcset = BDDV(0, m);
+  BDD term;
+
+  // logic description part
+  while(s[0] != '.')
+  {
+    if(strlen(s) != n)
+    { cerr << "error at product term.\n"; return BDDV(-1);}
+    term = 1;
+    for(int i=0; i<n; i++)
+    {
+      switch(s[i])
+      {
+      case '0':
+        term &= ~BDDvar(BDD_VarOfLev(sopf? 2*i+2: i+1));
+	break;
+      case '1':
+        term &= BDDvar(BDD_VarOfLev(sopf? 2*i+2: i+1));
+	break;
+      case '-':
+	break;
+      default:
+        cerr << "error at product term.\n";
+        return BDDV(-1);
+      }
+    }
+    if(fscanf(strm, "%s", &s) == EOF)
+    { cerr << "unexpected eof.\n"; return BDDV(-1);}
+    if(strlen(s) != m) 
+    { cerr << "error at output symbol.\n"; return BDDV(-1);}
+    for(int i=0; i<m; i++)
+    {
+      BDDV tv = BDDV(term, m) & BDDV_Mask1(i, m);
+      switch(s[i])
+      {
+      case '0':
+        offset |= tv;
+        break;
+      case '1':
+        onset |= tv;
+	break;
+      case '-':
+        dcset |= tv;
+	break;
+      case '~':
+	break;
+      default:
+        cerr << "error at output symbol.\n";
+        return BDDV(-1);
+      }
+    }
+    if(fscanf(strm, "%s", &s) == EOF)
+    { cerr << "unexpected eof.\n"; return BDDV(-1);}
+  }
+
+  // final part
+  switch(mode)
+  {
+  case 0:
+    offset = ~onset;
+    dcset = BDDV(0, m);
+    break;
+  case 1:
+    onset &= ~dcset;
+    offset = ~(onset | dcset);
+    break;
+  case 2:
+    if((onset & offset) != BDDV(0, m)) 
+    { cerr << "overlaping onset & offset.\n"; return BDDV(-1);}
+    dcset = ~(onset | offset);
+    break;
+  case 3:
+    if((onset & offset) != BDDV(0, m)) 
+    { cerr << "overlaping onset & offset.\n"; return BDDV(-1);}
+    if((onset & dcset) != BDDV(0, m))
+    { cerr << "overlaping onset & dcset.\n"; return BDDV(-1);}
+    if((offset & dcset) != BDDV(0, m))
+    { cerr << "overlaping offset & dcset.\n"; return BDDV(-1);}
+    if((onset | offset | dcset) != BDDV(1, m))
+    { cerr << "not covering function.\n"; return BDDV(-1);}
+    break;
+  }
+  return (onset || dcset);
+}

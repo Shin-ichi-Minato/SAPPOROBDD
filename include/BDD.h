@@ -1,6 +1,6 @@
 /********************************************
- * BDD+ Manipulator (SAPPORO-1.83) - Header *
- * (C) Shin-ichi MINATO  (Mar. 23, 2017)    *
+ * BDD+ Manipulator (SAPPORO-1.86) - Header *
+ * (C) Shin-ichi MINATO  (Aug. 15, 2020)    *
  ********************************************/
 
 class BDD;
@@ -273,6 +273,7 @@ extern BDDV operator||(const BDDV&, const BDDV&);
 extern BDDV BDDV_Mask1(int, int);
 extern BDDV BDDV_Mask2(int, int);
 extern BDDV BDDV_Import(FILE *strm = stdin);
+extern BDDV BDDV_ImportPla(FILE *strm = stdin, int sopf = 0);
 
 //----- Inline functions for BDDV ---------
 inline int BDDV_UserTopLev(void) { return BDD_TopLev(); }
