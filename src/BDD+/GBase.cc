@@ -1,7 +1,7 @@
 /****************************************
- * Graph Base class (SAPPORO-1.91)      *
+ * Graph Base class (SAPPORO-1.92)      *
  * (Main part)                          *
- * (C) Shin-ichi MINATO (Sep 3, 2021)   *
+ * (C) Shin-ichi MINATO (Oct. 16, 2021) *
  ****************************************/
 
 #include "GBase.h"

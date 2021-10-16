@@ -1,6 +1,6 @@
 /************************************************
- * Graph Base class (SAPPORO-1.87) - Header     *
- * (C) Shin-ichi MINATO  (May 14, 2021)         *
+ * Graph Base class (SAPPORO-1.92) - Header     *
+ * (C) Shin-ichi MINATO  (Oct 16, 2021)         *
  ************************************************/
 
 class GBase;
@@ -11,8 +11,8 @@ class GBase;
 #include "ZBDD.h"
 
 //typedef unsigned char GB_v; // up to 254 vertices.
-typedef unsigned short GB_v; // more than 255 vertices.
-typedef unsigned short GB_e;
+typedef unsigned short GB_v; // up to 65534 vertices.
+typedef unsigned short GB_e; // up to 65534 edges.
 extern const char GB_fix0;
 extern const char GB_fix1;
 
