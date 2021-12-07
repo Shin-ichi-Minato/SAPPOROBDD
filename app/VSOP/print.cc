@@ -1,5 +1,5 @@
-// VSOP Print (v1.43)
-// Shin-ichi MINATO (May 14, 2021)
+// VSOP Print (v1.44)
+// Shin-ichi MINATO (Dec. 6, 2021)
 
 #include <cstdio>
 #include <iostream>
@@ -159,7 +159,7 @@ int PrintDigital(CtoI a)
   {
     if(d > 1)
     {
-      char s[10];
+      char s[20];
       sprintf(s, "%3d:", i);
       bout << s;
     }
