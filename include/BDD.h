@@ -1,6 +1,6 @@
 /********************************************
- * BDD+ Manipulator (SAPPORO-1.87) - Header *
- * (C) Shin-ichi MINATO  (MAy 14, 2021)     *
+ * BDD+ Manipulator (SAPPORO-1.93) - Header *
+ * (C) Shin-ichi MINATO  (Dec. 6, 2021)     *
  ********************************************/
 
 class BDD;
@@ -102,7 +102,7 @@ public:
 };
 
 //--------- External functions for BDD ---------
-extern int     BDD_Init(bddword, bddword);
+extern int     BDD_Init(bddword init=256, bddword limit=BDD_MaxNode);
 extern int     BDD_NewVarOfLev(int);
 extern int     BDD_VarUsed(void);
 extern bddword BDD_Used(void);
@@ -267,7 +267,7 @@ public:
 };
 
 //----- External functions for BDDV ---------
-extern int     BDDV_Init(bddword, bddword);
+extern int     BDDV_Init(bddword init=256, bddword limit=BDD_MaxNode);
 extern int     BDDV_NewVarOfLev(int);
 extern BDDV operator||(const BDDV&, const BDDV&);
 extern BDDV BDDV_Mask1(int, int);

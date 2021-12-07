@@ -17,6 +17,10 @@ extern "C"
   int rand();
 };
 
+//----- External constant data for BDD -------
+
+const bddword BDD_MaxNode = B_VAL_MASK >> 1U;
+const int BDD_MaxVar = bddvarmax;
 
 //--- SBDD class for default initialization ----
 
@@ -25,15 +29,10 @@ int BDDV_Active = 0;
 class SBDD
 {
 public:
-  SBDD(bddword init, bddword limit) { bddinit(init, limit); }
+  //SBDD(bddword init, bddword limit) { bddinit(init, limit); }
+  SBDD(void) { BDD_Init(); }
 };
-static SBDD BDD_Manager((bddword)256, (bddword)1024);
-
-
-//----- External constant data for BDD -------
-
-const bddword BDD_MaxNode = B_VAL_MASK >> 1U;
-const int BDD_MaxVar = bddvarmax;
+static SBDD BDD_Manager;
 
 //-------------- class BDD --------------------
 

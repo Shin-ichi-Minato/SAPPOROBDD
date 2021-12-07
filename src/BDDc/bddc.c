@@ -1,6 +1,6 @@
 /*****************************************
-*  BDD Package (SAPPORO-1.91)   - Body   *
-*  (C) Shin-ichi MINATO  (Sep 3, 2021)   *
+*  BDD Package (SAPPORO-1.93)   - Body   *
+*  (C) Shin-ichi MINATO  (Dec 6, 2021)   *
 ******************************************/
 
 #include <stdio.h>
