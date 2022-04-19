@@ -1,6 +1,6 @@
 /*****************************************
-*  BDD Package (SAPPORO-1.93)   - Body   *
-*  (C) Shin-ichi MINATO  (Dec 6, 2021)   *
+*  BDD Package (SAPPORO-1.94)   - Body   *
+*  (C) Shin-ichi MINATO  (Apr. 19, 2022)   *
 ******************************************/
 
 #include <stdio.h>
@@ -122,19 +122,18 @@ int BDD_RecurCount = 0;
 
 /* Hash Functions */
 #define B_HASHKEY(f0, f1, hashSpc) \
-  (((B_CST(f0)? (f0): (f0)+2U) \
-   ^(B_NEG(f0)? ~((f0)>>1U): ((f0)>>1U)) \
-   ^(B_CST(f1)? (f1)<<1U: ((f1)+2U)<<1U) \
-   ^(B_NEG(f1)? ~((f1)>>1U): ((f1)>>1U)) )\
+  (((B_CST(f0)? (f0): ((f0)+2U)) \
+   ^(B_NEG(f0)? ~((f0)>>1U): ((f0)>>1U))\
+   ^((B_CST(f1)? (f1): ((f1)+2U))) \
+   ^((B_NEG(f1)? ~((f1)>>1U):((f1)>>1U))<<4U))\
   & (hashSpc-1U))
-/*  (((f0)^((f0)>>10)^((f0)>>31)^(f1)^((f1)>>8)^((f1)>>31)) \*/
 #define B_CACHEKEY(op, f, g) \
-  ((((bddp)(op)<<2U) \
-   ^(B_CST(f)? (f): (f)+2U) \
-   ^(B_NEG(f)? ~((f)>>1U): ((f)>>1U)) \
-   ^(B_CST(g)? (g)<<3U: ((g)+2U)<<3U) \
-   ^(B_NEG(g)? ~((g)>>1U): ((g)>>1U)) )\
-  & (CacheSpc-1U))
+  ((((bddp)(op)<<4U)\
+   ^((B_CST(f)? (f):((f)+2U)))\
+   ^((B_NEG(f)? ~((f)>>1U): ((f)>>1U))) \
+   ^((B_CST(g)? (g):((g)+2U))) \
+   ^((B_NEG(g)? ~((g)>>1U):((g)>>1U))*4369U) )\
+   & (CacheSpc-1U))
 
 /* Multi-Precision Count */
 #define B_MP_LWID 4U
