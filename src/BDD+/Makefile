@@ -20,7 +20,7 @@ all:    $(LIB64)
 $(LIB64): BDD_64.o BDDX11_64.o BDDHASH_64.o ZBDD_64.o ZBDDX11_64.o \
 	  ZBDDHASH_64.o MLZBDDV_64.o SOP_64.o BtoI_64.o \
 	  CtoI_64.o CtoIX11_64.o BDDDG_64.o ZBDDDG_64.o \
-	  PiDD_64.o SeqBDD_64.o GBase_64.o BDDCT_64.o
+	  PiDD_64.o RotPiDD_64.o SeqBDD_64.o GBase_64.o BDDCT_64.o
 	  rm -f $(LIB64)
 	  ar cr $(LIB64) *_64.o $(OBJC64) $(OBJX64)
 	  ranlib $(LIB64)
@@ -28,7 +28,7 @@ $(LIB64): BDD_64.o BDDX11_64.o BDDHASH_64.o ZBDD_64.o ZBDDX11_64.o \
 $(LIB32): BDD_32.o BDDX11_32.o BDDHASH_32.o ZBDD_32.o ZBDDX11_32.o \
 	  ZBDDHASH_32.o MLZBDDV_32.o SOP_32.o BtoI_32.o \
 	  CtoI_32.o CtoIX11_32.o BDDDG_32.o ZBDDDG_32.o \
-	  PiDD_32.o SeqBDD_32.o GBase_32.o BDDCT_32.o
+	  PiDD_32.o RotPiDD_32.o SeqBDD_32.o GBase_32.o BDDCT_32.o
 	  rm -f $(LIB32)
 	  ar cr $(LIB32) *_32.o $(OBJC32) $(OBJX32)
 	  ranlib $(LIB32)
@@ -119,6 +119,12 @@ PiDD_32.o: PiDD.cc $(INCL)/PiDD.h $(INCL)/ZBDD.h $(INCL)/BDD.h
 
 PiDD_64.o: PiDD.cc $(INCL)/PiDD.h $(INCL)/ZBDD.h $(INCL)/BDD.h
 	$(CC) $(OPT64) -c PiDD.cc -o PiDD_64.o
+
+RotPiDD_32.o: RotPiDD.cc $(INCL)/RotPiDD.h $(INCL)/ZBDD.h $(INCL)/BDD.h
+	$(CC) $(OPT) -c RotPiDD.cc -o RotPiDD_32.o
+
+RotPiDD_64.o: RotPiDD.cc $(INCL)/RotPiDD.h $(INCL)/ZBDD.h $(INCL)/BDD.h
+	$(CC) $(OPT64) -c RotPiDD.cc -o RotPiDD_64.o
 
 SeqBDD_32.o: SeqBDD.cc $(INCL)/SeqBDD.h $(INCL)/ZBDD.h $(INCL)/BDD.h
 	$(CC) $(OPT) -c SeqBDD.cc -o SeqBDD_32.o
