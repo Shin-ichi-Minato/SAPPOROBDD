@@ -343,7 +343,7 @@ RotPiDD RotPiDD::RemoveMax(int k) const {
 }
 
 //normalize n-permutation into [1..n]
-void normalizePerm(std::vector<int> &v){
+void RotPiDD::normalizePerm(std::vector<int> &v){
   std::vector<int> pos = v;
   sort(pos.begin(),pos.end());
   for(int i=0;i<(int)v.size();i++){
@@ -352,7 +352,7 @@ void normalizePerm(std::vector<int> &v){
 }
 
 //convert std::vector<int> [1..n] into RotPiDD in O(n) time
-RotPiDD VECtoRotPiDD(std::vector<int> v){
+RotPiDD RotPiDD::VECtoRotPiDD(std::vector<int> v){
   normalizePerm(v);
   int n = v.size();
 

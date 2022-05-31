@@ -12,12 +12,6 @@ class RotPiDD;
 #include<unordered_map>
 #include "ZBDD.h"
 
-struct hash_func{
-  size_t operator()(const std::pair<bddword, unsigned long long int> &a) const {
-    return (a.first + 1) * (a.second + 1);
-  }
-};
-
 class RotPiDD;
 
 #define RotPiDD_MaxVar 254
@@ -38,9 +32,6 @@ extern int RotPiDD_NewVar(void);
 extern int RotPiDD_VarUsed(void);
 
 extern RotPiDD operator*(const RotPiDD&, const RotPiDD&);
-
-void normalizePerm(std::vector<int> &v);
-RotPiDD VECtoRotPiDD(std::vector<int> v);
 
 class RotPiDD
 {
@@ -71,6 +62,15 @@ public:
   RotPiDD Insert(int, int) const;
   RotPiDD RemoveMax(int) const;
   RotPiDD normalizeRotPiDD(int) const;
+
+  static void normalizePerm(std::vector<int> &v);
+  static RotPiDD VECtoRotPiDD(std::vector<int> v);
+
+  struct hash_func{
+    size_t operator()(const std::pair<bddword, unsigned long long int> &a) const {
+      return (a.first + 1) * (a.second + 1);
+    }
+  };
   long long int contradictionMaximization(unsigned long long int, std::vector<int>&, int,
 					  std::unordered_map< std::pair<bddword, unsigned long long int>, long long int, hash_func>&,
 					  const std::vector< std::vector<int> >&) const;
