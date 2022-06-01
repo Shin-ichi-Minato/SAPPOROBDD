@@ -1,7 +1,7 @@
 /****************************************
- * PiDD class (SAPPORO-1.95)            *
+ * RotPiDD class (SAPPORO-1.95)         *
  * (Main part)                          *
- * (C) Yuma INOUE (May 2, 2022)         *
+ * (C) Yuma INOUE (June 1, 2022)        *
  ****************************************/
 
 #include <vector>

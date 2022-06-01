@@ -1,6 +1,6 @@
 /************************************************
  * RotPiDD class (SAPPORO-1.95) - Header        *
- * (C) Yuma INOUE  (May 2, 2022)                *
+ * (C) Yuma INOUE  (June 1, 2022)               *
  ************************************************/
 
 class RotPiDD;
