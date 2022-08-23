@@ -1,6 +1,6 @@
 /************************************************
- * Graph Base class (SAPPORO-1.92) - Header     *
- * (C) Shin-ichi MINATO  (Oct 16, 2021)         *
+ * Graph Base class (SAPPORO-1.95) - Header     *
+ * (C) Shin-ichi MINATO  (Jul. 23, 2022)        *
  ************************************************/
 
 class GBase;

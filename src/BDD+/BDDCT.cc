@@ -1,6 +1,6 @@
 /****************************************
- * BDD Cost Table class - Body v1.92    *
- * (C) Shin-ichi MINATO (Oct. 16, 2021) *
+ * BDD Cost Table class - Body v1.95    *
+ * (C) Shin-ichi MINATO (Aug. 23, 2022) *
  ****************************************/
 
 #include "BDDCT.h"
@@ -19,6 +19,8 @@ BDDCT::BDDCT()
   _ca0size = 0;
   _ca0ent = 0;
   _ca0 = 0;
+
+  _call = 0;
 }
 
 BDDCT::~BDDCT()
@@ -212,6 +214,7 @@ ZBDD BDDCT::CacheRef(const ZBDD& f, const bddcost bound,
       ZBDD h = itr->second;
       if(h == -1) return -1;
       acc_worst = -(itr->first);
+      if(acc_worst == -bddcost_null) acc_worst = bddcost_null;
       if(itr == zm->begin()) rej_best = bddcost_null;
       else
       {
@@ -247,7 +250,7 @@ int BDDCT::CacheEnt(const ZBDD& f, const ZBDD& h,
   }
   Zmap* zm = _ca[k]._zmap;
   if(acc_worst != bddcost_null) (*zm)[-acc_worst] = h;
-  else if(h == 0) (*zm)[-rej_best+1] = 0;
+  else if(h == 0) (*zm)[bddcost_null] = 0;
   if(rej_best != bddcost_null)
      if(zm->find(-rej_best) == zm->end()) (*zm)[-rej_best] = -1;
   return 0;
@@ -330,6 +333,7 @@ static ZBDD CLE(const ZBDD &, const bddcost, bddcost &, bddcost &);
 ZBDD CLE(const ZBDD& f, const bddcost bound,
           bddcost& acc_worst, bddcost& rej_best)
 {
+  CT->_call++;
   if(f == 0)
   {
     acc_worst = bddcost_null;
@@ -357,8 +361,12 @@ ZBDD CLE(const ZBDD& f, const bddcost bound,
   int top = f.Top();
   bddcost cost = CT->CostOfLev(BDD_LevOfVar(top));
   bddcost aw0, aw1, rb0, rb1;
+  h = CLE(f.OnSet0(top), bound - cost, aw1, rb1).Change(top)
+    + CLE(f.OffSet(top), bound, aw0, rb0);
+  /*
   h = CLE(f.OffSet(top), bound, aw0, rb0)
     + CLE(f.OnSet0(top), bound - cost, aw1, rb1).Change(top);
+  */
   if(aw1 == bddcost_null) acc_worst = aw0;
   else
   {
@@ -372,6 +380,12 @@ ZBDD CLE(const ZBDD& f, const bddcost bound,
     rej_best = (rb0 == bddcost_null)? rb1: (rb0 < rb1)? rb0: rb1;
   }
   CT->CacheEnt(f, h, acc_worst, rej_best);
+  /*
+  if(h == 0) CT->CacheEnt(f, h, bddcost_null, bound+1);
+  else if(h == f) CT->CacheEnt(f, h, bound, bddcost_null);
+  else CT->CacheEnt(f, h, bound, bound+1);
+  */
+  //CT->CacheEnt(f, h, bound, bound+1);
   return h;
 }
 
@@ -379,6 +393,7 @@ ZBDD BDDCT::ZBDD_CostLE(const ZBDD& f, const bddcost bound,
                          bddcost& acc_worst, bddcost& rej_best)
 {
   CT = this;
+  _call = 0;
   ZBDD h = CLE(f, bound, acc_worst, rej_best);
   return h;
 }

@@ -1,7 +1,7 @@
 /****************************************
- * Graph Base class (SAPPORO-1.92)      *
+ * Graph Base class (SAPPORO-1.95)      *
  * (Main part)                          *
- * (C) Shin-ichi MINATO (Oct. 16, 2021) *
+ * (C) Shin-ichi MINATO (Jul. 23, 2022) *
  ****************************************/
 
 #include "GBase.h"
@@ -184,13 +184,15 @@ void GBase::Print() const
 
 inline int GBase::BDDvarOfEdge(const GB_e ix) const
 { 
-  while(BDD_TopLev() < _m) BDD_NewVar();
+  int m = BDD_TopLev();
+  while(m < _m) BDD_NewVarOfLev(++m);
   return BDD_VarOfLev(_m - ix);
 }
 
 inline GB_e GBase::EdgeOfBDDvar(const int var) const
 {
-  while(BDD_TopLev() < _m) BDD_NewVar();
+  int m = BDD_TopLev();
+  while(m < _m) BDD_NewVarOfLev(++m);
   return _m - BDD_LevOfVar(var);
 }
 
@@ -272,7 +274,7 @@ static bddword Hash(const GB_e);
 bddword Hash(const GB_e ix)
 {
   bddword k = 0;
-  bddword id = _e[ix]._f.GetID(); // ZDD-constrained enum.
+  bddword id = _e[ix+1]._f.GetID(); // ZDD-constrained enum.
   k = (id+(id>>10)+(id>>20)); // ZDD-constrained enum.
   for(int i=0; i<_e[ix]._mtwid; i++)
   {
@@ -303,7 +305,7 @@ ZBDD CacheCheck(const GB_e ix)
     }
     if(i == _e[ix]._mtwid)
     {
-      if(_e[ix]._ca[k]._f == _e[ix]._f) // ZDD-constrained enum.
+      if(_e[ix]._ca[k]._f == _e[ix+1]._f) // ZDD-constrained enum.
       {
 #ifdef DEBUG
         _hit++;
@@ -347,7 +349,7 @@ void CacheEnter(const GB_e ix, ZBDD h)
     k = (k0 + (_magic++ & (HashTry-1))) & (_e[ix]._casize-1);
   for(int i=0; i<_e[ix]._mtwid; i++)
     _e[ix]._ca_mate[k * _e[ix]._mtwid + i] = _e[ix]._cfg[_e[ix]._map[i]-1];
-  _e[ix]._ca[k]._f = _e[ix]._f; // ZDD-constrained enum.
+  _e[ix]._ca[k]._f = _e[ix+1]._f; // ZDD-constrained enum.
   _e[ix]._ca[k]._h = h;
 }
 
@@ -360,7 +362,8 @@ int EnumCyclesInit()
   _m = G -> _m;
 
   // new BDDvar
-  while(BDD_TopLev() < _m) BDD_NewVar();
+  int m = BDD_TopLev();
+  while(m < _m) BDD_NewVarOfLev(++m);
 
   // init degree 
   for(int i=0; i<_n; i++) { _v[i]._deg = 0; _v[i]._tmp = 0; }
@@ -410,7 +413,9 @@ int EnumCyclesInit()
 
     if(_e[i]._map) { delete[] _e[i]._map; _e[i]._map = 0; }
     if(!(_e[i]._map = new GB_v[_e[i]._mtwid])) return 1;
-
+#ifdef DEBUG
+    cout << i << ": " << _e[i]._mtwid << "\n";
+#endif // DEBUG
     // set _map
     int k = 0;
     if(i > 0)
@@ -454,8 +459,8 @@ int EnumCyclesInit()
   while(1)
   {
     i++; if(i >= _m) break;
-    _e[i++]._casize = 0; if(i >= _m) break;
-    _e[i++]._casize = 0; if(i >= _m) break;
+    //_e[i++]._casize = 0; if(i >= _m) break;
+    //_e[i++]._casize = 0; if(i >= _m) break;
     if(i+1 < _m && _e[i]._mtwid >= _e[i+1]._mtwid)
       { _e[i++]._casize = 0; if(i >= _m) break; }
   }
@@ -509,11 +514,8 @@ ZBDD EnumCycles(const GB_e ix)
   // _e[ix]._cfg copy 
   if(ix > 0)
   {
-    for(int k=0; k<2; k++)
-    {
-      _e[ix]._cfg[ev[0]-1] = _e[ix-1]._cfg[ev[0]-1];
-      _e[ix]._cfg[ev[1]-1] = _e[ix-1]._cfg[ev[1]-1];
-    }
+    _e[ix]._cfg[ev[0]-1] = _e[ix-1]._cfg[ev[0]-1];
+    _e[ix]._cfg[ev[1]-1] = _e[ix-1]._cfg[ev[1]-1];
     for(int i=0; i<_e[ix-1]._mtwid; i++)
     {
       GB_v v = _e[ix-1]._map[i];
@@ -534,10 +536,9 @@ ZBDD EnumCycles(const GB_e ix)
   }
   if(_e[ix]._preset == GB_fix1) { h0 = 0; goto skip0; } // preset to 1
   if(ix == _m-1 && !G->_hamilton) { h0 = 0; goto skip0; } // empty subgraph
-
-//cout << ix << ": ";
-//for(int j=0; j<_n; j++) cout << (int)_e[ix]._cfg[j] << " ";
-//cout << "c0\n";
+  //cout << ix << ": ";
+  //for(int j=0; j<_n; j++) cout << (int)_e[ix]._cfg[j] << " ";
+  //cout << "c0\n";
   _e[ix+1]._f = _e[ix]._f.OffSet(BDD_VarOfLev(_m-ix)); // ZDD-constrained enu.
   h0 = EnumCycles(ix+1);
 
@@ -548,7 +549,7 @@ skip0:
      (mate_ev[1] = _e[ix]._cfg[ev[1]-1]) == 0) 
     { h1 = 0; goto skip1; } // branch
   if(_e[ix]._preset == GB_fix0) { h1 = 0; goto skip1; } // preset to 0
-  if(mate_ev[0] == ev[1] && mate_ev[1] == ev[0])
+  if(mate_ev[0] == ev[1] && mate_ev[1] == ev[0]) // cycle occurs
   {
     for(int i=0; i<_e[ix]._mtwid; i++)
     {
@@ -557,29 +558,30 @@ skip0:
       if(v == ev[1]) continue;
       GB_v v_mate = _e[ix]._cfg[v-1];
       if(v_mate != 0 && (G->_hamilton || v_mate != v))
-          { h1 = 0; goto skip1; } // invalid terminal 
+        { h1 = 0; goto skip1; } // invalid terminal 
     }
-    if(!G->_hamilton || ix >= G->_lastin) // a solution found
-    {
-      if((_e[ix]._f.OnSet0(BDD_VarOfLev(_m-ix)) & 1) != 0) // ZDD-Constrained enum.
-      {
+    if(G->_hamilton && ix < G->_lastin) 
+      { h1 = 0; goto skip1; } // not Hamiltonian cycle 
+    // a solution found
+    if((_e[ix]._f.OnSet0(BDD_VarOfLev(_m-ix)) & 1) == 0) // ZDD-Constrained enum.
+      { h1 = 0; goto skip1; }
 #ifdef DEBUG
-        _sol++;
+    _sol++;
 #endif
-        h1 = 1; goto skip1;
-      }
-      h1 = 0; goto skip1; 
-    }
+    h1 = 1;
+    goto skip1;
   }
 
   // update for h1
   for(int k=0; k<2; k++)
+  {
     if(mate_ev[k] == ev[k]) _e[ix]._cfg[ev[k]-1] = mate_ev[1-k];
     else
     {
       _e[ix]._cfg[mate_ev[k]-1] = mate_ev[1-k];
       _e[ix]._cfg[ev[k]-1] = 0;
     }
+  }
 
   // check for h1 
   for(int k=0; k<2; k++)
@@ -592,9 +594,9 @@ skip0:
         { h1 = 0; goto skip1; } // invalid terminal 
     }
   }
-//cout << ix << ": ";
-//for(int j=0; j<_n; j++) cout << (int)_e[ix]._cfg[j] << " ";
-//cout << "c1\n";
+  //cout << ix << ": ";
+  //for(int j=0; j<_n; j++) cout << (int)_e[ix]._cfg[j] << " ";
+  //cout << "c1\n";
   _e[ix+1]._f = _e[ix]._f.OnSet0(BDD_VarOfLev(_m-ix)); // ZDD-constrained enu.
   h1 = EnumCycles(ix+1);
 
@@ -613,20 +615,37 @@ ZBDD GBase::SimPaths(const GB_v s, const GB_v t)
   if(t < 1 || t > _n) return -1;
   if(s == t) return 0;
 
-  GBase g;
-  g.Init(_n, _m+1);
-  g._e[0]._ev[0] = s;
-  g._e[0]._ev[1] = t;
-  g.FixEdge(0, GB_fix1);
-  for(int i=0; i<_m; i++)
+  GB_e st = 0;
+  while(st < _m)
   {
-    g._e[i+1]._ev[0] = _e[i]._ev[0];
-    g._e[i+1]._ev[1] = _e[i]._ev[1];
+    if(_e[st]._ev[0] == s && _e[st]._ev[1] == t) break;
+    if(_e[st]._ev[0] == t && _e[st]._ev[1] == s) break;
+    st++;
   }
-  g.SetHamilton(_hamilton);
 
-  int v = g.BDDvarOfEdge(0);
-  return g.SimCycles().OnSet0(v);
+  GBase g;
+  GBase* gp;
+
+  if(st < _m) gp = this;
+  else
+  {
+    g.Init(_n, _m+1);
+    g._e[0]._ev[0] = s;
+    g._e[0]._ev[1] = t;
+    for(int i=0; i<_m; i++)
+    {
+      g._e[i+1]._ev[0] = _e[i]._ev[0];
+      g._e[i+1]._ev[1] = _e[i]._ev[1];
+    }
+    st = 0;
+    gp = &g;
+  }
+
+  gp->SetHamilton(_hamilton);
+  gp->FixEdge(st, GB_fix1);
+  int v = gp->BDDvarOfEdge(st);
+  //gp->_f = _f.Change(v);
+  return gp->SimCycles().OnSet0(v);
 }
 
 ZBDD GBase::SimCycles()

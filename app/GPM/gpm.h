@@ -1,6 +1,6 @@
 /****************************************
- * Graph Path Miner ver 1.00 - Header   *
- * (C) Shin-ichi MINATO (Sep. 13, 2020) *
+ * Graph Path Miner ver 2.2 - Header    *
+ * (C) Shin-ichi MINATO (Aug. 23, 2022) *
  ****************************************/
 
  // no lines

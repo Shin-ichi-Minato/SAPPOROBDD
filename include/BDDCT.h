@@ -1,6 +1,6 @@
 /*****************************************
- *  BDD Cost Table class - Header v1.92  *
- *  (C) Shin-ichi MINATO (Oct. 16, 2021) *
+ *  BDD Cost Table class - Header v1.95  *
+ *  (C) Shin-ichi MINATO (Aug. 23, 2022) *
  *****************************************/
 
 class BDDCT;
@@ -65,6 +65,8 @@ public:
   bddword _ca0size;
   bddword _ca0ent;
   Cache0Entry* _ca0;
+  
+  bddword _call;
 
   BDDCT(void);
   ~BDDCT(void);
