@@ -1,6 +1,6 @@
 /****************************************
- * BDD Cost Table class - Body v1.95    *
- * (C) Shin-ichi MINATO (Aug. 23, 2022) *
+ * BDD Cost Table class - Body v1.96    *
+ * (C) Shin-ichi MINATO (Oct. 15, 2022) *
  ****************************************/
 
 #include "BDDCT.h"
@@ -142,7 +142,7 @@ void BDDCT::Export() const
   cout << "#n " << _n << "\n";
   for(int i=0; i<_n; i++)
   {
-    cout << "#" << i+1 << ": " << _cost[i];
+    cout << _cost[i];
     if(_label[i] && _label[i][0])
       cout << " #" << _label[i];
     cout << "\n";
