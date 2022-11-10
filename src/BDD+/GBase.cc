@@ -1,7 +1,7 @@
 /****************************************
- * Graph Base class (SAPPORO-1.95)      *
+ * Graph Base class (SAPPORO-1.96)      *
  * (Main part)                          *
- * (C) Shin-ichi MINATO (Jul. 23, 2022) *
+ * (C) Shin-ichi MINATO (Nov. 11, 2022) *
  ****************************************/
 
 #include "GBase.h"
@@ -644,8 +644,9 @@ ZBDD GBase::SimPaths(const GB_v s, const GB_v t)
   gp->SetHamilton(_hamilton);
   gp->FixEdge(st, GB_fix1);
   int v = gp->BDDvarOfEdge(st);
-  //gp->_f = _f.Change(v);
-  return gp->SimCycles().OnSet0(v);
+  ZBDD h = gp->SimCycles().OnSet0(v);
+  if(gp == this) h += ZBDD(1).Change(v);
+  return h;
 }
 
 ZBDD GBase::SimCycles()
