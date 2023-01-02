@@ -1,6 +1,6 @@
 /*****************************************
- *  BDD Cost Table class - Header v1.95  *
- *  (C) Shin-ichi MINATO (Aug. 23, 2022) *
+ *  BDD Cost Table class - Header v1.97  *
+ *  (C) Shin-ichi MINATO (Jan. 2, 2023)  *
  *****************************************/
 
 class BDDCT;
@@ -11,7 +11,6 @@ class BDDCT;
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cmath>
 #include <iostream>
 #include "ZBDD.h"
 
