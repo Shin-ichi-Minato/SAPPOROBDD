@@ -1,6 +1,6 @@
 /****************************************
- * BDD Cost Table class - Body v1.96    *
- * (C) Shin-ichi MINATO (Oct. 15, 2022) *
+ * BDD Cost Table class - Body v1.97    *
+ * (C) Shin-ichi MINATO (Jan. 2, 2023)  *
  ****************************************/
 
 #include "BDDCT.h"
@@ -129,7 +129,7 @@ int BDDCT::AllocRand(const int n, const bddcost min, const bddcost max)
   bddcost m = max - min + 1;
   if(m < 0) m = 1;
   for(int ix=0; ix<_n; ix++)
-    if(SetCost(ix, ((double)random()/((double)RAND_MAX+1)) * m + min))
+    if(SetCost(ix, ((double)rand()/((double)RAND_MAX+1)) * m + min))
     {
       Alloc(0);
       return 1;
