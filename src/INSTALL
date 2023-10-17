@@ -1,7 +1,9 @@
 cd BDDc
 make 64
-cd ../BDDXc
-make 64
+if [ -e /opt/X11/include/X11/Xlib.h ]; then
+    cd ../BDDXc
+    make 64
+fi
 cd ../BDD+
 make 64
 cd ..
