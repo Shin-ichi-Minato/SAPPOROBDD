@@ -121,10 +121,10 @@ PiDD_64.o: PiDD.cc $(INCL)/PiDD.h $(INCL)/ZBDD.h $(INCL)/BDD.h
 	$(CC) $(OPT64) -c PiDD.cc -o PiDD_64.o
 
 RotPiDD_32.o: RotPiDD.cc $(INCL)/RotPiDD.h $(INCL)/ZBDD.h $(INCL)/BDD.h
-	$(CC) $(OPT) -c RotPiDD.cc -o RotPiDD_32.o
+	$(CC) $(OPT) -std=c++11 -c RotPiDD.cc -o RotPiDD_32.o
 
 RotPiDD_64.o: RotPiDD.cc $(INCL)/RotPiDD.h $(INCL)/ZBDD.h $(INCL)/BDD.h
-	$(CC) $(OPT64) -c RotPiDD.cc -o RotPiDD_64.o
+	$(CC) $(OPT64) -std=c++11 -c RotPiDD.cc -o RotPiDD_64.o
 
 SeqBDD_32.o: SeqBDD.cc $(INCL)/SeqBDD.h $(INCL)/ZBDD.h $(INCL)/BDD.h
 	$(CC) $(OPT) -c SeqBDD.cc -o SeqBDD_32.o
