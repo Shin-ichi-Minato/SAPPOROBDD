@@ -1,7 +1,9 @@
 cd BDDc
 make 32
-cd ../BDDXc
-make 32
+if [ -e /opt/X11/include/X11/Xlib.h ]; then
+    cd ../BDDXc
+    make 32
+fi
 cd ../BDD+
 make 32
 cd ..
