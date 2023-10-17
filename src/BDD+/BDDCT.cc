@@ -129,7 +129,7 @@ int BDDCT::AllocRand(const int n, const bddcost min, const bddcost max)
   bddcost m = max - min + 1;
   if(m < 0) m = 1;
   for(int ix=0; ix<_n; ix++)
-    if(SetCost(ix, ((double)rand()/((double)RAND_MAX+1)) * m + min))
+    if(SetCost(ix, (bddcost)(((double)rand()/((double)RAND_MAX+1)) * m) + min))
     {
       Alloc(0);
       return 1;
