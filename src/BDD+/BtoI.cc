@@ -139,7 +139,7 @@ int BtoI::GetInt() const
   return n;
 }
 
-static const char table[] = "0123456789ABCDEF";
+//static const char table[] = "0123456789ABCDEF";
 
 int BtoI::StrNum10(char* s) const
 {

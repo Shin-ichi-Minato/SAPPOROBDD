@@ -15,7 +15,7 @@ static const char BC_SOP_BDD = 33;
 static const char BC_ISOP1 = 34;
 static const char BC_ISOP2 = 35;
 static const char BC_SOP_IMPL = 36;
-static const char BC_SOP_SUPPORT = 37;
+//static const char BC_SOP_SUPPORT = 37;
 
 //----------- Macros for operation cache -----------
 #define SOP_CACHE_CHK_RETURN(op, fx, gx) \
