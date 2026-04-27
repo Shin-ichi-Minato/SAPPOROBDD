@@ -164,7 +164,7 @@ int ZBDD::SymChk(int v1, int v2) const
   if(v2 <= 0) BDDerr("ZBDD::SymChk(): invalid v2.", v2);
   if(*this == 0 || *this == 1) return 1;
   if(v1 == v2) return 1;
-  if(v1 < v2) { int tmp = v1; v1 = v2; v2 = tmp; }
+  if(BDD_LevOfVar(v1) < BDD_LevOfVar(v2)) { int tmp = v1; v1 = v2; v2 = tmp; }
 
   ZBDD S = ZBDD(1).Change(v1) + ZBDD(1).Change(v2);
   bddword fx = GetID();
